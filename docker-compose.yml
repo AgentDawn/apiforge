@@ -1,0 +1,32 @@
+services:
+  rqlite:
+    image: rqlite/rqlite:latest
+    ports:
+      - "4001:4001"
+    tmpfs:
+      - /rqlite/file/data
+    command: ["-node-id", "1"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4001/readyz"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  server:
+    build: ./packages/server
+    ports:
+      - "8090:8090"
+    environment:
+      - PORT=8090
+      - RQLITE_URL=http://rqlite:4001
+      - JWT_SECRET=${JWT_SECRET:-apiforge-dev-secret-change-in-production}
+    depends_on:
+      rqlite:
+        condition: service_healthy
+
+  web:
+    build: ./packages/web
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server

@@ -1,0 +1,33 @@
+{
+  "name": "apiforge-nestjs-sample",
+  "version": "0.0.1",
+  "description": "Sample NestJS project for APIForge integration testing",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "start:dev": "ts-node -r tsconfig-paths/register src/main.ts",
+    "swagger:generate": "ts-node -r tsconfig-paths/register src/generate-swagger.ts",
+    "apiforge:generate": "ts-node -r tsconfig-paths/register src/generate-apiforge.ts",
+    "start:grpc": "ts-node -r tsconfig-paths/register src/main.ts"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.3",
+    "@grpc/proto-loader": "^0.8.0",
+    "@nestjs/common": "^9.4.3",
+    "@nestjs/core": "^9.0.0",
+    "@nestjs/microservices": "^9.4.3",
+    "@nestjs/platform-express": "^9.0.0",
+    "@nestjs/swagger": "^6.0.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.1.0",
+    "typescript": "^4.9.5"
+  }
+}

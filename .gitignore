@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+build/
+target/
+
+# Test artifacts
+test-results/
+playwright-report/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# App data
+.apiforge/
+coverage/
+
+# Claude Code / OMC
+.claude/
+.omc/
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Temp
+tmp/
+.tmp/

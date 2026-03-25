@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package petstore.v1;
+
+option go_package = "petstore/v1;petstorev1";
+
+// Pet management service
+service PetService {
+  // Add a new pet to the store
+  rpc AddPet (AddPetRequest) returns (Pet);
+
+  // Get a pet by its ID
+  rpc GetPet (GetPetRequest) returns (Pet);
+
+  // List all pets with optional filtering
+  rpc ListPets (ListPetsRequest) returns (ListPetsResponse);
+
+  // Update an existing pet
+  rpc UpdatePet (UpdatePetRequest) returns (Pet);
+
+  // Delete a pet by ID
+  rpc DeletePet (DeletePetRequest) returns (DeletePetResponse);
+
+  // Stream pet updates in real-time
+  rpc WatchPets (WatchPetsRequest) returns (stream PetEvent);
+}
+
+// Store operations service
+service StoreService {
+  // Place an order for a pet
+  rpc PlaceOrder (PlaceOrderRequest) returns (Order);
+
+  // Get an order by ID
+  rpc GetOrder (GetOrderRequest) returns (Order);
+
+  // Delete an order
+  rpc DeleteOrder (DeleteOrderRequest) returns (DeleteOrderResponse);
+}
+
+// ─── Messages ────────────────────────────────────────────
+
+enum PetStatus {
+  PET_STATUS_UNSPECIFIED = 0;
+  PET_STATUS_AVAILABLE = 1;
+  PET_STATUS_PENDING = 2;
+  PET_STATUS_SOLD = 3;
+}
+
+message Pet {
+  int64 id = 1;
+  string name = 2;
+  PetStatus status = 3;
+  repeated string tags = 4;
+  Category category = 5;
+  repeated string photo_urls = 6;
+}
+
+message Category {
+  int64 id = 1;
+  string name = 2;
+}
+
+message AddPetRequest {
+  string name = 1;
+  PetStatus status = 2;
+  repeated string tags = 3;
+  int64 category_id = 4;
+  repeated string photo_urls = 5;
+}
+
+message GetPetRequest {
+  int64 id = 1;
+}
+
+message ListPetsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  PetStatus status_filter = 3;
+}
+
+message ListPetsResponse {
+  repeated Pet pets = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message UpdatePetRequest {
+  int64 id = 1;
+  string name = 2;
+  PetStatus status = 3;
+  repeated string tags = 4;
+}
+
+message DeletePetRequest {
+  int64 id = 1;
+}
+
+message DeletePetResponse {
+  bool success = 1;
+}
+
+message WatchPetsRequest {
+  PetStatus status_filter = 1;
+}
+
+message PetEvent {
+  string event_type = 1;
+  Pet pet = 2;
+}
+
+// ─── Store messages ──────────────────────────────────────
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PLACED = 1;
+  ORDER_STATUS_APPROVED = 2;
+  ORDER_STATUS_DELIVERED = 3;
+}
+
+message Order {
+  int64 id = 1;
+  int64 pet_id = 2;
+  int32 quantity = 3;
+  OrderStatus status = 4;
+  bool complete = 5;
+}
+
+message PlaceOrderRequest {
+  int64 pet_id = 1;
+  int32 quantity = 2;
+}
+
+message GetOrderRequest {
+  int64 id = 1;
+}
+
+message DeleteOrderRequest {
+  int64 id = 1;
+}
+
+message DeleteOrderResponse {
+  bool success = 1;
+}

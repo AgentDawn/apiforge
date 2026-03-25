@@ -1,0 +1,26 @@
+{
+  "name": "@apiforge/cli",
+  "version": "0.1.0",
+  "description": "API client, documentation generator, and test runner. Rust-powered CLI.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "apiforge": "bin/apiforge.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js"
+  },
+  "files": [
+    "bin/",
+    "scripts/"
+  ],
+  "os": ["darwin", "linux", "win32"],
+  "cpu": ["x64", "arm64"],
+  "engines": {
+    "node": ">=16"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/user/apiforge"
+  }
+}

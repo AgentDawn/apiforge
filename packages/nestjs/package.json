@@ -1,0 +1,27 @@
+{
+  "name": "@apiforge/nestjs",
+  "version": "0.1.0",
+  "description": "APIForge NestJS integration - decorators + OpenAPI JSON generator",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^9.0.0 || ^10.0.0",
+    "@nestjs/core": "^9.0.0 || ^10.0.0",
+    "reflect-metadata": "^0.1.13 || ^0.2.0"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^9.4.3",
+    "@nestjs/core": "^9.0.0",
+    "@nestjs/platform-express": "^9.0.0",
+    "@types/node": "^18.0.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.0",
+    "typescript": "^4.9.5"
+  },
+  "files": ["dist"],
+  "license": "MIT"
+}

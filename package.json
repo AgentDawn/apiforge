@@ -1,0 +1,17 @@
+{
+  "name": "apiforge",
+  "version": "0.1.0",
+  "description": "Open-source API client, documentation generator, and test runner. Postman/Swagger alternative.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node packages/web/dev-server.mjs",
+    "test:web": "cd packages/web && npx playwright test",
+    "lint": "eslint packages/*/src/",
+    "format": "prettier --write \"packages/*/src/**/*.js\""
+  },
+  "engines": {
+    "node": ">=18.3.0"
+  },
+  "license": "MIT"
+}

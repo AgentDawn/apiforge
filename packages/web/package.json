@@ -1,0 +1,15 @@
+{
+  "name": "@apiforge/web",
+  "version": "0.1.0",
+  "description": "APIForge web UI - vanilla JS SPA",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve public -l 3000",
+    "test:e2e": "npx playwright test",
+    "test:e2e:headed": "npx playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.42.0"
+  }
+}

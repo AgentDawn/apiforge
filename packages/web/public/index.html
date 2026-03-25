@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APIForge</title>
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="sidebar-header"><h1>APIForge</h1><span class="version">v0.1.0</span><button class="search-icon-btn" id="search-icon-btn" data-testid="search-icon-btn" title="Search endpoints (Ctrl+K)">&#128269;</button></div>
+      <!-- App Auth -->
+      <div class="sidebar-section" id="app-auth-section" style="border-bottom:1px solid var(--border);padding-bottom:12px;">
+        <div id="app-auth-logged-out">
+          <button class="btn btn-primary" id="app-login-btn" data-testid="app-login-btn" style="font-size:12px;padding:8px;width:100%;">Login</button>
+          <button class="btn btn-secondary hidden" id="app-register-btn" data-testid="app-register-btn" style="font-size:12px;padding:8px;width:100%;margin-top:4px;">Register</button>
+        </div>
+        <div id="app-auth-logged-in" class="hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span class="user-avatar" id="app-user-avatar"></span><span style="font-size:13px;font-weight:600;" data-testid="app-username" id="app-username"></span>
+            <button class="btn btn-secondary" id="app-logout-btn" data-testid="app-logout-btn" style="font-size:11px;padding:4px 10px;">Logout</button>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-toggle" data-testid="sidebar-toggle">
+        <button class="sidebar-toggle-btn active" data-view="docs" data-testid="sidebar-toggle-docs">API Docs <span id="docs-count" class="sidebar-toggle-count">0</span></button>
+        <button class="sidebar-toggle-btn" data-view="collections" data-testid="sidebar-toggle-collections">Collections <span id="collections-count" class="sidebar-toggle-count">0</span></button>
+      </div>
+      <div class="sidebar-section" id="import-spec-section">
+        <h3>Import Spec</h3>
+        <input type="file" id="spec-file-input" accept=".json,.yaml,.yml,.proto,.fbs" style="display:none">
+        <button class="btn btn-secondary" id="import-file-btn" style="font-size:12px;padding:8px;width:100%">Open File</button>
+        <button class="btn btn-secondary" id="import-curl-btn" data-testid="import-curl-btn" style="font-size:12px;padding:8px;width:100%;margin-top:4px">Paste cURL</button>
+      </div>
+      <div class="sidebar-section" id="api-docs-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <h3 class="sidebar-section-title">API DOCS</h3>
+          <div style="display:flex;gap:4px;">
+            <button class="btn btn-secondary" id="save-collection-btn" data-testid="save-collection-btn" style="font-size:10px;padding:3px 8px;" title="Save to server" disabled>Save</button>
+            <button class="btn btn-secondary" id="delete-collection-btn" data-testid="delete-collection-btn" style="font-size:10px;padding:3px 8px;" title="Delete from server" disabled>Delete</button>
+          </div>
+        </div>
+        <div id="collection-tree" data-testid="collection-tree"></div>
+        <!-- Saved collections from server -->
+        <div id="saved-collections-list" data-testid="saved-collections-list" style="margin-top:8px;"></div>
+      </div>
+      <div class="sidebar-section hidden" id="collections-section">
+        <h3 class="sidebar-section-title">COLLECTIONS</h3>
+        <div id="saved-collections-tree" data-testid="saved-collections-tree"></div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <!-- Mode toggle removed: tab type (client/docs) controls panel visibility -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="position:relative;display:inline-flex;align-items:center;">
+            <select class="env-selector" id="env-selector" data-testid="env-selector">
+              <option value="">No Environment</option>
+            </select>
+            <span id="env-var-badge" data-testid="env-var-badge" class="env-var-badge hidden">0</span>
+          </div>
+          <button class="btn btn-secondary" id="env-vars-btn" data-testid="env-vars-btn" style="font-size:11px;padding:5px 10px;white-space:nowrap;">Variables</button>
+          <label class="theme-picker" title="Switch theme">
+            <span class="theme-picker-icon">&#9681;</span>
+            <select id="theme-select" data-testid="theme-select">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="midnight">Midnight</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="tab-bar-request" id="request-tab-bar" data-testid="request-tab-bar">
+        <!-- Tabs rendered dynamically -->
+      </div>
+      <div class="request-panel">
+        <!-- Source breadcrumb (shown for spec-linked tabs) -->
+        <div class="source-breadcrumb hidden" id="source-breadcrumb" data-testid="source-breadcrumb"></div>
+        <!-- gRPC target server (hidden by default, shown when proto loaded) -->
+        <div id="grpc-target-bar" data-testid="grpc-target-bar" class="hidden" style="display:none;align-items:center;gap:8px;padding:0 0 8px 0;">
+          <span class="method-badge method-grpc" style="font-size:11px;">gRPC</span>
+          <input class="url-input" id="grpc-target" data-testid="grpc-target" placeholder="gRPC server (e.g. localhost:50051)" style="flex:1;font-size:13px;padding:8px 12px;">
+          <label style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:4px;">
+            <input type="checkbox" id="grpc-tls" data-testid="grpc-tls"> TLS
+          </label>
+        </div>
+        <div class="request-url-bar">
+          <select class="method-select" id="method-select" data-testid="method-select">
+            <option value="GET">GET</option><option value="POST">POST</option>
+            <option value="PUT">PUT</option><option value="PATCH">PATCH</option>
+            <option value="DELETE">DELETE</option><option value="GRPC" class="hidden">gRPC</option><option value="FBS" class="hidden">FBS</option>
+          </select>
+          <input class="url-input" id="url-input" data-testid="url-input" placeholder="Enter request URL" value="">
+          <button class="btn btn-primary" id="send-btn" data-testid="send-btn">Send</button>
+          <button class="btn btn-secondary" id="save-example-btn" data-testid="save-example-btn" title="Save current request as example">Save Example</button>
+          <button class="btn btn-secondary" id="save-as-doc-btn" data-testid="save-as-doc-btn" title="Save as API documentation" style="display:none;">Save as Doc</button>
+          <button class="btn btn-secondary" id="copy-curl-btn" data-testid="copy-curl-btn" title="Copy as cURL">cURL</button>
+          <button class="btn btn-secondary" id="share-btn" data-testid="share-btn" title="Share request">Share</button>
+        </div>
+        <div class="tab-bar">
+          <div class="tab active" data-tab="params">Params</div>
+          <div class="tab" data-tab="headers">Headers</div>
+          <div class="tab" data-tab="body">Body</div>
+          <div class="tab" data-tab="auth">Auth</div>
+        </div>
+        <div id="tab-params" style="padding:16px 0;">
+          <div data-testid="params-editor">
+            <table class="params-table unified-params" data-testid="params-table">
+              <thead><tr><th style="width:30px;"></th><th>Name</th><th>Type</th><th>Value</th><th>Required</th><th>Description</th><th style="width:30px;">Default</th></tr></thead>
+              <tbody></tbody>
+            </table>
+            <button class="btn btn-secondary kv-add-btn" data-testid="add-param-btn" style="margin-top:8px;font-size:12px;padding:6px 12px;">+ Add Param</button>
+          </div>
+        </div>
+        <div id="tab-headers" class="hidden" style="padding:16px 0;">
+          <table class="kv-table" id="headers-editor" data-testid="headers-editor">
+            <thead><tr><th style="width:30px;"></th><th>Key</th><th>Value</th><th style="width:30px;"></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <button class="btn btn-secondary kv-add-btn" data-testid="add-header-btn" style="margin-top:8px;font-size:12px;padding:6px 12px;">+ Add Header</button>
+        </div>
+        <div id="tab-body" class="hidden" style="padding:16px 0;">
+          <div class="body-type-selector" data-testid="body-type-selector">
+            <button class="body-type-btn active" data-type="none" data-testid="body-type-none">None</button>
+            <button class="body-type-btn" data-type="json" data-testid="body-type-json">JSON</button>
+            <button class="body-type-btn" data-type="form-urlencoded" data-testid="body-type-form-urlencoded">Form URL-Encoded</button>
+            <button class="body-type-btn" data-type="form-data" data-testid="body-type-form-data">Form Data</button>
+            <button class="body-type-btn" data-type="raw" data-testid="body-type-raw">Raw</button>
+            <button class="body-type-btn" data-type="xml" data-testid="body-type-xml">XML</button>
+          </div>
+          <div id="body-none" data-testid="body-none">
+            <p class="body-none-text" style="padding:20px 0;font-size:13px;color:var(--text-secondary);">This request does not have a body</p>
+          </div>
+          <div id="body-editor-wrap" class="hidden"></div>
+          <div id="body-form-urlencoded" class="hidden" data-testid="body-form-urlencoded">
+            <table class="kv-table" data-testid="form-urlencoded-table">
+              <thead><tr><th>Key</th><th>Value</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+            <button class="btn btn-secondary kv-add-btn" data-testid="form-urlencoded-add" style="margin-top:8px;font-size:12px;padding:6px 12px;">+ Add Field</button>
+          </div>
+          <div id="body-form-data" class="hidden" data-testid="body-form-data">
+            <table class="kv-table" data-testid="form-data-table">
+              <thead><tr><th>Key</th><th>Type</th><th>Value</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+            <button class="btn btn-secondary kv-add-btn" data-testid="form-data-add" style="margin-top:8px;font-size:12px;padding:6px 12px;">+ Add Field</button>
+          </div>
+          <div id="body-raw-wrap" class="hidden" data-testid="body-raw-wrap">
+            <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+              <label style="font-size:12px;color:var(--text-secondary);">Content-Type:</label>
+              <input class="url-input" id="raw-content-type" data-testid="raw-content-type" value="text/plain" style="width:200px;font-size:12px;padding:6px 10px;">
+            </div>
+            <textarea class="body-editor" id="body-raw-editor" data-testid="body-raw-editor" rows="8" placeholder="Enter raw body content..."></textarea>
+          </div>
+          <div id="body-xml-wrap" class="hidden" data-testid="body-xml-wrap">
+            <textarea class="body-editor" id="body-xml-editor" data-testid="body-xml-editor" rows="8" placeholder="Enter XML body..."></textarea>
+          </div>
+        </div>
+        <div id="tab-auth" class="hidden" style="padding:16px 0;">
+          <!-- Auth type selector -->
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;">
+            <label style="font-size:13px;font-weight:600;">Auth Type:</label>
+            <select class="method-select" id="auth-type-select" data-testid="auth-type-select" style="min-width:160px;font-weight:400;font-size:13px;">
+              <option value="none">No Auth</option>
+              <option value="bearer">Bearer Token</option>
+              <option value="basic">Basic Auth</option>
+              <option value="apikey">API Key</option>
+              <option value="connector">Connector</option>
+            </select>
+          </div>
+
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">Credentials are stored locally in your browser.</p>
+
+          <!-- Security scheme hint (shown when spec provides requirements) -->
+          <div id="auth-scheme-hint" class="hidden" style="margin-bottom:12px;padding:8px 12px;background:var(--accent-subtle);border:1px solid var(--accent);border-radius:var(--radius);font-size:12px;color:var(--accent);">
+            <span id="auth-scheme-hint-text"></span>
+          </div>
+
+          <!-- No Auth -->
+          <div id="auth-none-section" class="hidden">
+            <p style="font-size:13px;color:var(--text-secondary);">No authentication will be sent with this request.</p>
+          </div>
+
+          <!-- Bearer Token -->
+          <div id="auth-bearer-section">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;gap:8px;align-items:center;">
+                <label style="font-size:13px;width:70px;flex-shrink:0;">Token:</label>
+                <input class="url-input" id="auth-token" data-testid="auth-token" placeholder="Enter JWT token" style="flex:1;">
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <label style="font-size:13px;width:70px;flex-shrink:0;">Prefix:</label>
+                <select class="method-select" id="auth-bearer-prefix" data-testid="auth-bearer-prefix" style="font-weight:400;font-size:13px;min-width:120px;">
+                  <option value="Bearer">Bearer</option>
+                  <option value="Token">Token</option>
+                  <option value="custom">Custom...</option>
+                </select>
+                <input class="url-input" id="auth-bearer-prefix-custom" data-testid="auth-bearer-prefix-custom" placeholder="Custom prefix" style="flex:1;display:none;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Basic Auth -->
+          <div id="auth-basic-section" class="hidden">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;gap:8px;align-items:center;">
+                <label style="font-size:13px;width:80px;flex-shrink:0;">Username:</label>
+                <input class="url-input" id="auth-basic-username" data-testid="auth-basic-username" placeholder="Username" style="flex:1;" autocomplete="off">
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <label style="font-size:13px;width:80px;flex-shrink:0;">Password:</label>
+                <input class="url-input" id="auth-basic-password" data-testid="auth-basic-password" type="password" placeholder="Password" style="flex:1;" autocomplete="off">
+              </div>
+              <div id="auth-basic-preview" style="font-size:12px;color:var(--text-secondary);padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);font-family:var(--mono);word-break:break-all;display:none;">
+                Authorization: Basic <span id="auth-basic-preview-value"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- API Key -->
+          <div id="auth-apikey-section" class="hidden">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;gap:8px;align-items:center;">
+                <label style="font-size:13px;width:80px;flex-shrink:0;">Key Name:</label>
+                <input class="url-input" id="auth-apikey-name" data-testid="auth-apikey-name" placeholder="e.g. X-API-Key" style="flex:1;">
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <label style="font-size:13px;width:80px;flex-shrink:0;">Value:</label>
+                <input class="url-input" id="auth-apikey-value" data-testid="auth-apikey-value" placeholder="API key value" style="flex:1;">
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <label style="font-size:13px;width:80px;flex-shrink:0;">Add to:</label>
+                <select class="method-select" id="auth-apikey-location" data-testid="auth-apikey-location" style="font-weight:400;font-size:13px;min-width:160px;">
+                  <option value="header">Header</option>
+                  <option value="query">Query Param</option>
+                  <option value="cookie">Cookie</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Auth Connector -->
+          <div id="auth-connector-section" class="hidden">
+            <!-- Connector Configuration -->
+            <div class="connector-config">
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <label style="font-size:13px;width:130px;flex-shrink:0;">User Search URL:</label>
+                  <input class="url-input" id="connector-search-url" data-testid="connector-search-url" placeholder="http://localhost:3002/admin/users/search" style="flex:1;font-size:13px;padding:8px 12px;">
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <label style="font-size:13px;width:130px;flex-shrink:0;">Token Gen URL:</label>
+                  <input class="url-input" id="connector-token-url" data-testid="connector-token-url" placeholder="http://localhost:3002/admin/users/{id}/token" style="flex:1;font-size:13px;padding:8px 12px;">
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn btn-primary" id="connector-save-config" data-testid="connector-save-config" style="font-size:12px;padding:6px 14px;">Save Config</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- User Search -->
+            <div class="connector-search" style="margin-top:16px;">
+              <div style="display:flex;gap:8px;">
+                <input class="url-input" id="connector-search-input" data-testid="connector-search-input" placeholder="Search by email or name..." style="flex:1;font-size:13px;padding:8px 12px;">
+                <button class="btn btn-secondary" id="connector-search-btn" data-testid="connector-search-btn" style="font-size:12px;padding:6px 14px;">Search</button>
+              </div>
+              <!-- Search Results -->
+              <div id="connector-results" data-testid="connector-results" style="margin-top:8px;"></div>
+            </div>
+
+            <!-- Active Token Display -->
+            <div id="connector-active-token" data-testid="connector-active-token" class="hidden" style="margin-top:16px;padding:12px;background:var(--bg-input);border-radius:var(--radius);border:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:#4ade80;"></span>
+                <span style="font-size:13px;">Authenticated as: <strong id="connector-active-user" data-testid="connector-active-user"></strong></span>
+              </div>
+              <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px 0;">Token applied to Authorization header</p>
+              <button class="btn btn-secondary" id="connector-clear-token" data-testid="connector-clear-token" style="font-size:12px;padding:6px 14px;">Clear Token</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="response-panel" id="response-panel">
+        <div class="response-tabs" id="response-tabs" data-testid="response-tabs">
+          <div class="response-tab active" data-tab="response" data-testid="response-tab-response">Response</div>
+          <div class="response-tab" data-tab="history" data-testid="response-tab-history">History <span class="history-count" data-testid="history-count"></span></div>
+        </div>
+        <div id="response-tab-response">
+          <div id="response-empty" class="empty-state" style="padding:24px;"><h2 style="font-size:16px;">No Response Yet</h2><p style="font-size:13px;">Enter a URL and click Send, or import an OpenAPI spec.</p></div>
+          <div id="response-content" class="hidden">
+            <div class="response-header">
+              <span class="status-badge" id="response-status" data-testid="response-status"></span>
+              <span class="timing" id="response-timing" data-testid="response-timing"></span>
+              <span class="timing" id="response-size"></span>
+            </div>
+            <div class="response-hidden-bar hidden" id="response-hidden-bar" data-testid="response-hidden-bar">
+              <span class="response-hidden-label">Hidden:</span>
+            </div>
+            <div class="response-body" id="response-body-wrap" data-testid="response-body"></div>
+          </div>
+        </div>
+        <div id="response-tab-history" class="hidden" data-testid="response-history">
+          <!-- History list rendered dynamically -->
+        </div>
+      </div>
+      <div class="docs-panel hidden" id="docs-panel" data-testid="docs-panel">
+        <div id="docs-empty" class="empty-state" style="padding:60px;"><h2 style="font-size:16px;">API Documentation</h2><p style="font-size:13px;">Select an endpoint from the sidebar to view its documentation.</p></div>
+        <div id="docs-content" class="hidden" data-testid="docs-content"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Search Modal (Cmd/Ctrl+K) -->
+  <div class="search-modal hidden" id="search-modal" data-testid="search-modal">
+    <div class="search-overlay"></div>
+    <div class="search-dialog">
+      <input class="search-input" id="search-input" data-testid="search-input" placeholder="Search endpoints..." autocomplete="off">
+      <div class="search-results" id="search-results" data-testid="search-results"></div>
+      <div class="search-footer">
+        <span>&#8593;&#8595; Navigate</span> <span>&#8629; Select</span> <span>Esc Close</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Login/Register Modal -->
+  <dialog id="auth-modal" style="background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:320px;">
+    <h2 id="auth-modal-title" style="margin-bottom:16px;font-size:18px;">Login</h2>
+    <form id="auth-modal-form" style="display:flex;flex-direction:column;gap:12px;">
+      <input class="url-input" id="auth-modal-username" data-testid="auth-modal-username" placeholder="Username" autocomplete="username" required style="font-size:14px;padding:10px 14px;">
+      <input class="url-input" id="auth-modal-password" data-testid="auth-modal-password" type="password" placeholder="Password" autocomplete="current-password" required style="font-size:14px;padding:10px 14px;">
+      <div id="auth-modal-error" data-testid="auth-modal-error" style="color:var(--error);font-size:13px;display:none;"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+        <button type="button" class="btn btn-secondary" id="auth-modal-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="auth-modal-submit" data-testid="auth-modal-submit">Login</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Environment Variables Editor Panel -->
+  <div id="env-vars-panel" data-testid="env-vars-panel" class="env-vars-panel hidden">
+    <div class="env-vars-header">
+      <span style="font-weight:600;font-size:13px;">Environment Variables</span>
+      <button class="btn btn-secondary" id="env-vars-close" data-testid="env-vars-close" style="font-size:11px;padding:3px 8px;">Close</button>
+    </div>
+    <div class="env-vars-body">
+      <table class="kv-table" data-testid="env-vars-table">
+        <thead><tr><th>Key</th><th>Value</th><th></th></tr></thead>
+        <tbody id="env-vars-tbody"></tbody>
+      </table>
+      <button class="btn btn-secondary kv-add-btn" id="env-vars-add" data-testid="env-vars-add" style="margin-top:8px;font-size:12px;padding:6px 12px;">+ Add Variable</button>
+    </div>
+  </div>
+
+  <!-- cURL Import Modal -->
+  <div class="curl-import-modal hidden" id="curl-import-modal" data-testid="curl-import-modal">
+    <div class="curl-import-overlay"></div>
+    <div class="curl-import-dialog">
+      <h3>Import cURL</h3>
+      <textarea id="curl-import-input" data-testid="curl-import-input" placeholder="Paste cURL command here..." rows="6"></textarea>
+      <div class="curl-import-actions">
+        <button class="btn btn-secondary" id="curl-import-cancel">Cancel</button>
+        <button class="btn btn-primary" id="curl-import-submit" data-testid="curl-import-submit">Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Save as Doc Modal -->
+  <div class="save-doc-modal hidden" id="save-doc-modal" data-testid="save-doc-modal">
+    <div class="save-doc-overlay"></div>
+    <div class="save-doc-dialog">
+      <h3 id="save-doc-title">Create New API Doc</h3>
+      <div id="save-doc-form">
+        <label>Doc Name</label>
+        <input class="url-input" id="save-doc-name" data-testid="save-doc-name" placeholder="My API">
+        <label>Base URL</label>
+        <input class="url-input" id="save-doc-baseurl" data-testid="save-doc-baseurl" placeholder="https://api.example.com">
+        <label>Version</label>
+        <input class="url-input" id="save-doc-version" data-testid="save-doc-version" value="1.0.0">
+      </div>
+      <div id="save-doc-existing" class="hidden">
+        <p>Add endpoint <strong id="save-doc-endpoint-name"></strong> to existing doc: <strong id="save-doc-existing-name"></strong>?</p>
+      </div>
+      <div class="save-doc-actions">
+        <button class="btn btn-secondary" id="save-doc-cancel">Cancel</button>
+        <button class="btn btn-secondary hidden" id="save-doc-create-new" data-testid="save-doc-create-new">Create New Instead</button>
+        <button class="btn btn-primary" id="save-doc-submit" data-testid="save-doc-submit">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Banner -->
+  <div id="share-banner" data-testid="share-banner" class="share-banner hidden">Shared request loaded</div>
+
+  <script src="/src/utils.js"></script>
+  <script src="/src/json-linter.js"></script>
+  <script src="/src/json-editor.js"></script>
+  <script type="module" src="/src/proto-parser.js"></script>
+  <script type="module" src="/src/fbs-parser.js"></script>
+  <script type="module" src="/src/response-insights.js"></script>
+  <script type="module" src="/src/app.js"></script>
+  <script type="module" src="/src/app-auth.js"></script>
+</body>
+</html>

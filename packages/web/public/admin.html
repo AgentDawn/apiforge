@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APIForge Admin</title>
+  <style>
+    :root {
+      --bg-primary:    #1e1e2e;
+      --bg-secondary:  #2a2a3e;
+      --bg-input:      #333350;
+      --bg-hover:      #3a3a58;
+      --text-primary:  #e0e0f0;
+      --text-secondary:#a0a0c0;
+      --text-muted:    #6b6b8a;
+      --accent:        #7c5cfc;
+      --accent-hover:  #9b7fff;
+      --success:       #4ade80;
+      --error:         #f87171;
+      --warning:       #fbbf24;
+      --border:        #3a3a5e;
+      --radius:        8px;
+      --font:          'Segoe UI', system-ui, -apple-system, sans-serif;
+      --mono:          'Cascadia Code', 'Fira Code', Consolas, monospace;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: var(--font);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .admin-header {
+      width: 100%;
+      padding: 16px 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .admin-header h1 { font-size: 18px; }
+    .admin-header a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .admin-header a:hover { color: var(--accent-hover); }
+    .container {
+      width: 100%;
+      max-width: 800px;
+      padding: 24px;
+    }
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 16px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .form-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+    .form-row label {
+      font-size: 13px;
+      width: 80px;
+      flex-shrink: 0;
+    }
+    input[type="text"], input[type="password"], select {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      font-size: 13px;
+      flex: 1;
+      outline: none;
+    }
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      cursor: pointer;
+      font-family: var(--font);
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: var(--bg-input);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--bg-hover); }
+    .btn-danger {
+      background: transparent;
+      color: var(--error);
+      border: 1px solid var(--error);
+    }
+    .btn-danger:hover { background: rgba(248,113,113,0.1); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 12px;
+    }
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    tr:hover td { background: var(--bg-hover); }
+    .msg {
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .msg-error {
+      background: rgba(248,113,113,0.1);
+      border: 1px solid var(--error);
+      color: var(--error);
+    }
+    .msg-success {
+      background: rgba(74,222,128,0.1);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+    .msg-warning {
+      background: rgba(251,191,36,0.1);
+      border: 1px solid var(--warning);
+      color: var(--warning);
+    }
+    .hidden { display: none !important; }
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-header">
+    <h1>APIForge Admin</h1>
+    <a href="/">Back to APIForge</a>
+  </div>
+
+  <!-- Login Section -->
+  <div class="container" id="admin-login-section">
+    <div class="card">
+      <h2>Admin Login</h2>
+      <div class="msg msg-warning" id="admin-backend-warning">Go backend is not running. Admin features require the backend.</div>
+      <div class="msg msg-error" id="admin-login-error"></div>
+      <form id="admin-login-form">
+        <div class="form-row">
+          <label for="admin-username">Username</label>
+          <input type="text" id="admin-username" data-testid="admin-username" placeholder="Admin username" required>
+        </div>
+        <div class="form-row">
+          <label for="admin-password">Password</label>
+          <input type="password" id="admin-password" data-testid="admin-password" placeholder="Password" required>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+          <button type="submit" class="btn btn-primary" id="admin-login-btn" data-testid="admin-login-btn">Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Panel (after login) -->
+  <div class="container hidden" id="admin-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <span style="font-size:14px;">Logged in as <strong id="admin-current-user" data-testid="admin-current-user"></strong></span>
+      <button class="btn btn-secondary" id="admin-logout-btn" data-testid="admin-logout-btn">Logout</button>
+    </div>
+
+    <!-- Create User -->
+    <div class="card">
+      <h2>Create User</h2>
+      <div class="msg msg-error" id="create-user-error"></div>
+      <div class="msg msg-success" id="create-user-success"></div>
+      <form id="create-user-form">
+        <div class="form-row">
+          <label for="new-username">Username</label>
+          <input type="text" id="new-username" data-testid="new-username" placeholder="New username" required>
+        </div>
+        <div class="form-row">
+          <label for="new-password">Password</label>
+          <input type="password" id="new-password" data-testid="new-password" placeholder="Password (min 6 chars)" required>
+        </div>
+        <div class="form-row">
+          <label for="new-role">Role</label>
+          <select id="new-role" data-testid="new-role">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+          <button type="submit" class="btn btn-primary" data-testid="create-user-btn">Create User</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- User List -->
+    <div class="card">
+      <h2>Users</h2>
+      <div class="msg msg-error" id="users-list-error"></div>
+      <table id="users-table" data-testid="users-table">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Created</th>
+            <th style="width:80px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody" data-testid="users-tbody">
+        </tbody>
+      </table>
+      <div class="empty-state" id="users-empty">No users found</div>
+    </div>
+  </div>
+
+  <script>
+    // ─── Admin Page JS ───────────────────────────────────────
+    const API_BASE = '';
+    let adminToken = null;
+    let adminUser = null;
+
+    function $(sel) { return document.querySelector(sel); }
+
+    function showMsg(id, text) {
+      const el = $(id);
+      el.textContent = text;
+      el.style.display = 'block';
+    }
+    function hideMsg(id) {
+      $(id).style.display = 'none';
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = { 'Content-Type': 'application/json', ...options.headers };
+      if (adminToken) {
+        headers['Authorization'] = 'Bearer ' + adminToken;
+      }
+      const resp = await fetch(API_BASE + path, { ...options, headers });
+      const data = await resp.json().catch(() => null);
+      return { status: resp.status, ok: resp.ok, data };
+    }
+
+    // ─── Check backend health ────────────────────────────────
+    async function checkBackend() {
+      try {
+        const resp = await fetch('/health');
+        if (!resp.ok) throw new Error();
+      } catch {
+        $('#admin-backend-warning').style.display = 'block';
+      }
+    }
+
+    // ─── Login ───────────────────────────────────────────────
+    $('#admin-login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideMsg('#admin-login-error');
+
+      const username = $('#admin-username').value.trim();
+      const password = $('#admin-password').value;
+
+      if (!username || !password) {
+        showMsg('#admin-login-error', 'Username and password required');
+        return;
+      }
+
+      const btn = $('#admin-login-btn');
+      btn.disabled = true;
+      btn.textContent = 'Logging in...';
+
+      try {
+        const { ok, data } = await apiFetch('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ username, password }),
+        });
+
+        if (ok && data?.token) {
+          // Check admin role
+          const role = data.user?.role;
+          if (role !== 'admin') {
+            showMsg('#admin-login-error', 'Access denied: admin role required');
+            btn.disabled = false;
+            btn.textContent = 'Login';
+            return;
+          }
+          adminToken = data.token;
+          adminUser = data.user;
+          $('#admin-login-section').classList.add('hidden');
+          $('#admin-panel').classList.remove('hidden');
+          $('#admin-current-user').textContent = adminUser.username;
+          loadUsers();
+        } else {
+          showMsg('#admin-login-error', data?.error || 'Login failed');
+        }
+      } catch (err) {
+        showMsg('#admin-login-error', 'Connection error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Login';
+      }
+    });
+
+    // ─── Logout ──────────────────────────────────────────────
+    $('#admin-logout-btn').addEventListener('click', () => {
+      adminToken = null;
+      adminUser = null;
+      $('#admin-panel').classList.add('hidden');
+      $('#admin-login-section').classList.remove('hidden');
+      $('#admin-username').value = '';
+      $('#admin-password').value = '';
+    });
+
+    // ─── Create User ─────────────────────────────────────────
+    $('#create-user-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideMsg('#create-user-error');
+      hideMsg('#create-user-success');
+
+      const username = $('#new-username').value.trim();
+      const password = $('#new-password').value;
+      const role = $('#new-role').value;
+
+      if (!username || !password) {
+        showMsg('#create-user-error', 'Username and password required');
+        return;
+      }
+      if (password.length < 6) {
+        showMsg('#create-user-error', 'Password must be at least 6 characters');
+        return;
+      }
+
+      try {
+        const { ok, data } = await apiFetch('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ username, password, role }),
+        });
+
+        if (ok) {
+          showMsg('#create-user-success', 'User "' + username + '" created successfully');
+          $('#new-username').value = '';
+          $('#new-password').value = '';
+          $('#new-role').value = 'user';
+          loadUsers();
+        } else {
+          showMsg('#create-user-error', data?.error || 'Failed to create user');
+        }
+      } catch (err) {
+        showMsg('#create-user-error', 'Connection error: ' + err.message);
+      }
+    });
+
+    // ─── Load Users ──────────────────────────────────────────
+    async function loadUsers() {
+      hideMsg('#users-list-error');
+      const tbody = $('#users-tbody');
+      const empty = $('#users-empty');
+
+      try {
+        const { ok, data } = await apiFetch('/api/users');
+
+        if (ok && Array.isArray(data)) {
+          if (data.length === 0) {
+            tbody.innerHTML = '';
+            empty.style.display = 'block';
+            return;
+          }
+          empty.style.display = 'none';
+          tbody.innerHTML = data.map(u => {
+            const created = u.created_at ? new Date(u.created_at).toLocaleDateString() : '-';
+            return '<tr data-testid="user-row-' + escapeHtml(u.username) + '">' +
+              '<td>' + escapeHtml(u.username) + '</td>' +
+              '<td>' + escapeHtml(u.role || 'user') + '</td>' +
+              '<td>' + created + '</td>' +
+              '<td><button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="deleteUser(\'' + escapeHtml(u.id || u.username) + '\')">Delete</button></td>' +
+              '</tr>';
+          }).join('');
+        } else if (!ok && data?.error) {
+          // Backend may not support /api/users yet
+          showMsg('#users-list-error', 'Could not load users: ' + data.error);
+          empty.style.display = 'block';
+          tbody.innerHTML = '';
+        } else {
+          empty.style.display = 'block';
+          tbody.innerHTML = '';
+        }
+      } catch (err) {
+        showMsg('#users-list-error', 'Could not load users. Backend may not support this endpoint yet.');
+        empty.style.display = 'block';
+        tbody.innerHTML = '';
+      }
+    }
+
+    // ─── Delete User ─────────────────────────────────────────
+    async function deleteUser(id) {
+      if (!confirm('Delete this user?')) return;
+      try {
+        const { ok, data } = await apiFetch('/api/users/' + id, { method: 'DELETE' });
+        if (ok) {
+          loadUsers();
+        } else {
+          alert('Failed to delete: ' + (data?.error || 'unknown error'));
+        }
+      } catch (err) {
+        alert('Connection error: ' + err.message);
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    // ─── Init ────────────────────────────────────────────────
+    checkBackend();
+  </script>
+</body>
+</html>

@@ -1,0 +1,617 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Sample API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/admin/users/search": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "POST /admin/users/search",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/token": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "POST /admin/users/{id}/token",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/api/v1/pets": {
+      "get": {
+        "tags": [
+          "pets"
+        ],
+        "summary": "GET /api/v1/pets",
+        "parameters": [
+          {
+            "name": "species",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "pets"
+        ],
+        "summary": "POST /api/v1/pets",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/api/v1/pets/{id}": {
+      "delete": {
+        "tags": [
+          "pets"
+        ],
+        "summary": "DELETE /api/v1/pets/{id}",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "pets"
+        ],
+        "summary": "GET /api/v1/pets/{id}",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "pets"
+        ],
+        "summary": "PUT /api/v1/pets/{id}",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/api/v1/pets/{id}/avatar": {
+      "post": {
+        "tags": [
+          "pets"
+        ],
+        "summary": "POST /api/v1/pets/{id}/avatar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/any"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/login": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "POST /api/v1/users/login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "GET /api/v1/users/me",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/register": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "POST /api/v1/users/register",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/register-multi": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "POST /api/v1/users/register-multi",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "GET /api/v1/users/{id}",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/internal/health": {
+      "get": {
+        "tags": [
+          "Internal"
+        ],
+        "summary": "GET /internal/health",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/internal/version": {
+      "get": {
+        "tags": [
+          "Internal"
+        ],
+        "summary": "GET /internal/version",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/petstore.v1.PetService/AddPet": {
+      "post": {
+        "tags": [
+          ""
+        ],
+        "summary": "POST /petstore.v1.PetService/AddPet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/petstore.v1.PetService/GetPet": {
+      "post": {
+        "tags": [
+          ""
+        ],
+        "summary": "POST /petstore.v1.PetService/GetPet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/petstore.v1.PetService/ListPets": {
+      "post": {
+        "tags": [
+          ""
+        ],
+        "summary": "POST /petstore.v1.PetService/ListPets",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/petstore.v1.StoreService/PlaceOrder": {
+      "post": {
+        "tags": [
+          ""
+        ],
+        "summary": "POST /petstore.v1.StoreService/PlaceOrder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreatePetDto": {
+        "type": "object",
+        "properties": {
+          "age": {
+            "type": "number",
+            "description": "펫 나이",
+            "example": 3
+          },
+          "name": {
+            "type": "string",
+            "description": "펫 이름",
+            "example": "Buddy"
+          },
+          "species": {
+            "type": "string",
+            "description": "펫 종류",
+            "enum": [
+              "dog",
+              "cat",
+              "bird",
+              "fish"
+            ]
+          },
+          "tags": {
+            "description": "태그 목록",
+            "$ref": "#/components/schemas/String"
+          }
+        },
+        "required": [
+          "name",
+          "species"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "사용자 이름",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "description": "이메일",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "description": "비밀번호",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "displayName"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "이메일"
+          },
+          "password": {
+            "type": "string",
+            "description": "비밀번호"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "UpdatePetDto": {
+        "type": "object",
+        "properties": {
+          "age": {
+            "type": "number",
+            "description": "펫 나이"
+          },
+          "name": {
+            "type": "string",
+            "description": "펫 이름"
+          },
+          "species": {
+            "type": "string",
+            "description": "펫 종류",
+            "enum": [
+              "dog",
+              "cat",
+              "bird",
+              "fish"
+            ]
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "JWT": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

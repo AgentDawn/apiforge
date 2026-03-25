@@ -1,0 +1,20 @@
+[package]
+name = "apiforge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "apiforge"
+path = "src/main.rs"
+
+[dependencies]
+apiforge-core = { path = "../apiforge-core" }
+apiforge-spec = { path = "../apiforge-spec" }
+apiforge-grpc = { path = "../apiforge-grpc" }
+clap = { workspace = true }
+tokio = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+crossterm = { workspace = true }
+url = { workspace = true }

@@ -1,0 +1,141 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Petstore API",
+    "description": "A sample API for testing APIForge",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "https://petstore.example.com/api/v1", "description": "Production" },
+    { "url": "http://localhost:3000/api/v1", "description": "Local" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "JWT": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Pet": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "description": "Pet ID" },
+          "name": { "type": "string", "description": "Pet name", "example": "Buddy" },
+          "species": { "type": "string", "description": "Species", "example": "dog" },
+          "ownerId": { "type": "integer", "description": "Owner user ID" }
+        },
+        "required": ["id", "name", "species"]
+      },
+      "CreatePetDto": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 100, "example": "Buddy" },
+          "species": { "type": "string", "example": "dog" }
+        },
+        "required": ["name", "species"]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "email": { "type": "string" },
+          "name": { "type": "string" }
+        }
+      }
+    }
+  },
+  "security": [{ "JWT": [] }],
+  "paths": {
+    "/pets": {
+      "get": {
+        "tags": ["Pets"],
+        "operationId": "PetController_findAll",
+        "summary": "Get all pets",
+        "description": "Returns a list of all pets",
+        "parameters": [
+          { "name": "species", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter by species" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 20 }, "description": "Max results" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of pets",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Pet" } }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized - JWT token missing or invalid" }
+        }
+      },
+      "post": {
+        "tags": ["Pets"],
+        "operationId": "PetController_create",
+        "summary": "Create a pet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePetDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pet created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Pet" } } }
+          },
+          "400": { "description": "Bad Request - name and species are required" },
+          "401": { "description": "Unauthorized - JWT token missing or invalid" },
+          "409": { "description": "Conflict - a pet with this name already exists" }
+        }
+      }
+    },
+    "/pets/{id}": {
+      "get": {
+        "tags": ["Pets"],
+        "operationId": "PetController_findOne",
+        "summary": "Get pet by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "Pet ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pet details",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Pet" } } }
+          },
+          "400": { "description": "Bad Request - id must be a positive integer" },
+          "401": { "description": "Unauthorized - JWT token missing or invalid" },
+          "404": { "description": "Pet not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Pets"],
+        "operationId": "PetController_delete",
+        "summary": "Delete a pet",
+        "deprecated": true,
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "204": { "description": "Pet deleted" }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": ["Users"],
+        "operationId": "UserController_findAll",
+        "summary": "Get all users",
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/User" } } } }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Documentation — APIForge</title>
+  <style>
+    :root {
+      --bg-primary: #1e1e2e;
+      --bg-secondary: #2a2a3e;
+      --bg-input: #333350;
+      --text-primary: #e0e0f0;
+      --text-secondary: #a0a0c0;
+      --accent: #7c5cfc;
+      --success: #4ade80;
+      --error: #f87171;
+      --warning: #fbbf24;
+      --border: #3a3a5e;
+      --radius: 8px;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      --mono: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font); background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+
+    .docs-header {
+      padding: 24px 40px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+    .docs-header h1 { font-size: 24px; font-weight: 700; }
+    .docs-header .meta { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+    .docs-header .badge {
+      display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px;
+      background: var(--accent); color: white; margin-left: 8px; vertical-align: middle;
+    }
+    .docs-powered {
+      font-size: 11px; color: var(--text-secondary); margin-top: 8px;
+    }
+    .docs-powered a { color: var(--accent); text-decoration: none; }
+
+    .docs-loading, .docs-error {
+      text-align: center; padding: 60px 20px; color: var(--text-secondary); font-size: 16px;
+    }
+    .docs-error { color: var(--error); }
+
+    .docs-container { max-width: 960px; margin: 0 auto; padding: 24px 40px; }
+
+    .docs-info { margin-bottom: 32px; }
+    .docs-info p { color: var(--text-secondary); line-height: 1.6; margin-top: 8px; }
+    .docs-info .base-url {
+      display: inline-block; font-family: var(--mono); font-size: 13px;
+      background: var(--bg-input); padding: 6px 12px; border-radius: var(--radius);
+      border: 1px solid var(--border); margin-top: 8px;
+    }
+
+    .docs-section { margin-bottom: 32px; }
+    .docs-section h2 {
+      font-size: 14px; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text-secondary); margin-bottom: 12px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .endpoint {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 8px; overflow: hidden;
+    }
+    .endpoint-header {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .endpoint-header:hover { background: var(--bg-input); }
+    .endpoint-method {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 3px 8px; border-radius: 4px; min-width: 56px; text-align: center;
+    }
+    .method-GET { background: rgba(74,222,128,0.15); color: var(--success); }
+    .method-POST { background: rgba(96,165,250,0.15); color: #60a5fa; }
+    .method-PUT { background: rgba(251,191,36,0.15); color: var(--warning); }
+    .method-PATCH { background: rgba(192,132,252,0.15); color: #c084fc; }
+    .method-DELETE { background: rgba(248,113,113,0.15); color: var(--error); }
+    .endpoint-path { font-family: var(--mono); font-size: 13px; }
+    .endpoint-summary { color: var(--text-secondary); font-size: 13px; margin-left: auto; }
+
+    .endpoint-detail {
+      display: none; padding: 16px; border-top: 1px solid var(--border);
+      background: var(--bg-primary);
+    }
+    .endpoint.open .endpoint-detail { display: block; }
+
+    .detail-section { margin-bottom: 12px; }
+    .detail-section h4 { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .param-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .param-table th { text-align: left; padding: 6px 8px; color: var(--text-secondary); font-size: 11px; border-bottom: 1px solid var(--border); }
+    .param-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    .param-name { font-family: var(--mono); color: var(--accent); }
+    .param-required { color: var(--error); font-size: 10px; font-weight: 600; }
+    .param-type { font-family: var(--mono); font-size: 12px; color: var(--text-secondary); }
+
+    .response-badge {
+      display: inline-block; font-family: var(--mono); font-size: 12px;
+      padding: 2px 8px; border-radius: 4px; margin-right: 6px; margin-bottom: 4px;
+    }
+    .response-2xx { background: rgba(74,222,128,0.15); color: var(--success); }
+    .response-4xx { background: rgba(248,113,113,0.15); color: var(--error); }
+    .response-5xx { background: rgba(251,191,36,0.15); color: var(--warning); }
+
+    .schema-block {
+      background: var(--bg-input); padding: 12px; border-radius: var(--radius);
+      font-family: var(--mono); font-size: 12px; overflow-x: auto;
+      white-space: pre-wrap; max-height: 300px; overflow-y: auto;
+      border: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div id="docs-loading" class="docs-loading">Loading API documentation...</div>
+  <div id="docs-error" class="docs-error" style="display:none;"></div>
+  <div id="docs-app" style="display:none;">
+    <div class="docs-header">
+      <h1 id="docs-title"></h1>
+      <div class="meta">
+        <span id="docs-version"></span>
+        <span class="badge" id="docs-badge"></span>
+      </div>
+      <div id="docs-description" style="margin-top:8px;color:var(--text-secondary);"></div>
+      <div class="docs-powered">Powered by <a href="/" target="_blank">APIForge</a></div>
+    </div>
+    <div class="docs-container">
+      <div class="docs-info" id="docs-info"></div>
+      <div id="docs-endpoints"></div>
+    </div>
+  </div>
+  <script>
+    (async function() {
+      const loading = document.getElementById('docs-loading');
+      const errorEl = document.getElementById('docs-error');
+      const app = document.getElementById('docs-app');
+
+      // Extract share token from URL: /docs/{token}
+      const pathParts = window.location.pathname.split('/');
+      const token = pathParts[pathParts.length - 1] || pathParts[pathParts.length - 2];
+
+      if (!token || token === 'docs') {
+        loading.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.textContent = 'No share token provided. Use /docs/{shareToken} to view API documentation.';
+        return;
+      }
+
+      try {
+        const resp = await fetch('/public/docs/' + token);
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || 'Document not found');
+        }
+        const data = await resp.json();
+        const spec = JSON.parse(data.spec);
+
+        loading.style.display = 'none';
+        app.style.display = 'block';
+
+        renderDocs(spec, data.name);
+      } catch (err) {
+        loading.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.textContent = err.message;
+      }
+    })();
+
+    function renderDocs(spec, collectionName) {
+      document.title = (spec.info?.title || collectionName) + ' — API Docs';
+      document.getElementById('docs-title').textContent = spec.info?.title || collectionName;
+      document.getElementById('docs-version').textContent = spec.info?.version ? 'v' + spec.info.version : '';
+      document.getElementById('docs-badge').textContent = spec.openapi || spec.swagger || 'API';
+      document.getElementById('docs-description').textContent = spec.info?.description || '';
+
+      // Base URL
+      const infoEl = document.getElementById('docs-info');
+      if (spec.servers?.length) {
+        infoEl.innerHTML = '<div class="base-url">' + escapeHtml(spec.servers[0].url) + '</div>';
+        if (spec.servers[0].description) {
+          infoEl.innerHTML += '<p>' + escapeHtml(spec.servers[0].description) + '</p>';
+        }
+      }
+
+      // Endpoints grouped by tag
+      const endpointsEl = document.getElementById('docs-endpoints');
+      const grouped = groupEndpoints(spec);
+
+      for (const [tag, endpoints] of Object.entries(grouped)) {
+        const section = document.createElement('div');
+        section.className = 'docs-section';
+        section.innerHTML = '<h2>' + escapeHtml(tag) + '</h2>';
+
+        for (const ep of endpoints) {
+          section.appendChild(createEndpointEl(ep, spec));
+        }
+        endpointsEl.appendChild(section);
+      }
+    }
+
+    function groupEndpoints(spec) {
+      const groups = {};
+      if (!spec.paths) return groups;
+
+      for (const [path, methods] of Object.entries(spec.paths)) {
+        for (const [method, op] of Object.entries(methods)) {
+          if (!['get','post','put','patch','delete'].includes(method)) continue;
+          const tag = op.tags?.[0] || 'Default';
+          if (!groups[tag]) groups[tag] = [];
+          groups[tag].push({ method: method.toUpperCase(), path, op });
+        }
+      }
+      return groups;
+    }
+
+    function createEndpointEl(ep, spec) {
+      const el = document.createElement('div');
+      el.className = 'endpoint';
+
+      const header = document.createElement('div');
+      header.className = 'endpoint-header';
+      header.innerHTML =
+        '<span class="endpoint-method method-' + ep.method + '">' + ep.method + '</span>' +
+        '<span class="endpoint-path">' + escapeHtml(ep.path) + '</span>' +
+        '<span class="endpoint-summary">' + escapeHtml(ep.op.summary || '') + '</span>';
+      header.addEventListener('click', () => el.classList.toggle('open'));
+
+      const detail = document.createElement('div');
+      detail.className = 'endpoint-detail';
+
+      // Description
+      if (ep.op.description) {
+        detail.innerHTML += '<div class="detail-section"><p style="color:var(--text-secondary);font-size:13px;line-height:1.5;">' + escapeHtml(ep.op.description) + '</p></div>';
+      }
+
+      // Parameters
+      if (ep.op.parameters?.length) {
+        let html = '<div class="detail-section"><h4>Parameters</h4><table class="param-table"><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr>';
+        for (const p of ep.op.parameters) {
+          html += '<tr><td class="param-name">' + escapeHtml(p.name) + '</td>' +
+            '<td>' + (p.in || '') + '</td>' +
+            '<td class="param-type">' + (p.schema?.type || '') + '</td>' +
+            '<td>' + (p.required ? '<span class="param-required">required</span>' : 'optional') + '</td>' +
+            '<td>' + escapeHtml(p.description || '') + '</td></tr>';
+        }
+        html += '</table></div>';
+        detail.innerHTML += html;
+      }
+
+      // Request body
+      if (ep.op.requestBody) {
+        const content = ep.op.requestBody.content;
+        const schema = content?.['application/json']?.schema;
+        if (schema) {
+          const resolved = resolveSchema(schema, spec);
+          detail.innerHTML += '<div class="detail-section"><h4>Request Body</h4><div class="schema-block">' + escapeHtml(JSON.stringify(resolved, null, 2)) + '</div></div>';
+        }
+      }
+
+      // Responses
+      if (ep.op.responses) {
+        let html = '<div class="detail-section"><h4>Responses</h4>';
+        const sorted = Object.keys(ep.op.responses).sort();
+        for (const code of sorted) {
+          const cls = code.startsWith('2') ? 'response-2xx' : code.startsWith('4') ? 'response-4xx' : 'response-5xx';
+          html += '<span class="response-badge ' + cls + '">' + code + '</span> ';
+          const desc = ep.op.responses[code].description;
+          if (desc) html += '<span style="font-size:12px;color:var(--text-secondary);">' + escapeHtml(desc) + '</span>';
+          html += '<br>';
+
+          const schema = ep.op.responses[code].content?.['application/json']?.schema;
+          if (schema) {
+            const resolved = resolveSchema(schema, spec);
+            html += '<div class="schema-block" style="margin:4px 0 8px;">' + escapeHtml(JSON.stringify(resolved, null, 2)) + '</div>';
+          }
+        }
+        html += '</div>';
+        detail.innerHTML += html;
+      }
+
+      el.appendChild(header);
+      el.appendChild(detail);
+      return el;
+    }
+
+    // (4-2) Resolve $ref pointers in schemas
+    function resolveSchema(schema, spec, depth) {
+      if (!schema || typeof schema !== 'object') return schema;
+      if ((depth || 0) > 8) return schema; // prevent circular
+      const d = (depth || 0) + 1;
+      if (schema.$ref) {
+        const parts = schema.$ref.replace(/^#\//, '').split('/');
+        let resolved = spec;
+        for (const p of parts) {
+          resolved = resolved?.[p];
+          if (!resolved) return schema;
+        }
+        return resolveSchema(resolved, spec, d);
+      }
+      const out = Array.isArray(schema) ? [] : {};
+      for (const [k, v] of Object.entries(schema)) {
+        out[k] = typeof v === 'object' && v !== null ? resolveSchema(v, spec, d) : v;
+      }
+      return out;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
