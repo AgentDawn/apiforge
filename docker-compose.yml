@@ -13,6 +13,7 @@ services:
       retries: 10
 
   server:
+    image: ghcr.io/agentdawn/apiforge/server:latest
     build: ./packages/server
     ports:
       - "8090:8090"
@@ -25,6 +26,7 @@ services:
         condition: service_healthy
 
   web:
+    image: ghcr.io/agentdawn/apiforge/web:latest
     build: ./packages/web
     ports:
       - "3000:3000"
