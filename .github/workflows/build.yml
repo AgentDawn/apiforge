@@ -10,6 +10,7 @@ jobs:
   # Rust CLI - cross-platform build
   build-cli:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -18,7 +19,7 @@ jobs:
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             artifact: apiforge-linux-arm64
-            cross: true
+            use-cross: true
           - os: macos-latest
             target: x86_64-apple-darwin
             artifact: apiforge-darwin-x64
@@ -40,13 +41,9 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cross-compilation tools
-        if: matrix.cross
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-          echo '[target.aarch64-unknown-linux-gnu]' >> ~/.cargo/config.toml
-          echo 'linker = "aarch64-linux-gnu-gcc"' >> ~/.cargo/config.toml
+      - name: Install cross
+        if: matrix.use-cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -58,7 +55,13 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('packages/apiforge-rs/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-${{ matrix.target }}-cargo-
 
-      - name: Build release
+      - name: Build release (cross)
+        if: matrix.use-cross
+        working-directory: packages/apiforge-rs
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Build release (native)
+        if: "!matrix.use-cross"
         working-directory: packages/apiforge-rs
         run: cargo build --release --target ${{ matrix.target }}
 
@@ -98,7 +101,7 @@ jobs:
         working-directory: packages/apiforge-rs
         run: cargo test
 
-  # Web e2e tests
+  # Web e2e tests (subset - no server-dependent tests)
   test-web:
     runs-on: ubuntu-latest
     name: Test Web (Playwright)
@@ -120,7 +123,7 @@ jobs:
 
       - name: Run Playwright tests
         working-directory: packages/web
-        run: npx playwright test --project=apiforge --project=json-editor --project=themes --project=search --project=env-variables --project=body-types --project=query-params --project=curl-share --project=auth-types --project=examples --project=docs-mode --project=request-tabs --project=source-traceability --project=openapi-responses --project=save-as-doc --project=schema-examples --project=response-insights --project=response-field-hide --project=request-history --project=collections-auto-save --project=sidebar-toggle
+        run: npx playwright test --project=core-ui --project=json-editor --project=themes --project=search --project=env-variables --project=body-types --project=query-params --project=curl-share --project=auth-types --project=examples --project=docs-mode --project=request-tabs --project=source-traceability --project=openapi-responses --project=save-as-doc --project=schema-examples --project=response-insights --project=response-field-hide --project=request-history --project=collections-auto-save --project=sidebar-toggle
 
       - name: Upload test report
         if: always()
