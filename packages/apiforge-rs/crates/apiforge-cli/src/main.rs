@@ -368,6 +368,11 @@ pub enum AuthAction {
     },
     /// Clear saved credentials
     Logout,
+    /// View or change server URL
+    Server {
+        /// New server URL (omit to show current)
+        url: Option<String>,
+    },
     /// Show current auth status
     Status,
     /// Show current connector user

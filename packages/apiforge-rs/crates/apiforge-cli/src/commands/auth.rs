@@ -42,6 +42,22 @@ pub async fn execute(action: AuthAction) -> Result<()> {
             server::clear_auth()?;
             println!("Logged out. Auth credentials cleared.");
         }
+        AuthAction::Server { url } => {
+            if let Some(new_url) = url {
+                let new_url = new_url.trim_end_matches('/').to_string();
+                // Update server URL in auth.json
+                let mut config = server::load_auth().unwrap_or(apiforge_core::auth::AuthConfig {
+                    token: None,
+                    server_url: None,
+                    username: None,
+                });
+                config.server_url = Some(new_url.clone());
+                server::save_auth(&config)?;
+                println!("{}", format!("Server URL set to: {}", new_url).green());
+            } else {
+                println!("Current server: {}", server::get_server_url());
+            }
+        }
         AuthAction::Status => {
             if let Ok(token) = std::env::var("APIFORGE_TOKEN") {
                 if !token.is_empty() {
