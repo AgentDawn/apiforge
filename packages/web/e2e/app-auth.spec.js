@@ -190,6 +190,67 @@ test.describe('App Auth - Register/Login/Logout', () => {
       await expect(page.locator('#app-auth-logged-in')).not.toHaveClass(/hidden/);
     });
   });
+  test('should show server URL field in login modal', {
+    annotation: [
+      { type: 'feature', description: 'app-auth' },
+      { type: 'severity', description: 'high' },
+      { type: 'owner', description: 'auth' },
+    ],
+  }, async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page.locator('#auth-modal')).toBeVisible();
+    await expect(page.getByTestId('auth-modal-server')).toBeVisible();
+  });
+
+  test('should save server URL to localStorage on login', {
+    annotation: [
+      { type: 'feature', description: 'app-auth' },
+      { type: 'severity', description: 'critical' },
+      { type: 'owner', description: 'auth' },
+    ],
+  }, async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
+    await page.getByTestId('auth-modal-server').fill('http://localhost:8090');
+    await page.getByTestId('auth-modal-username').fill('testuser');
+    await page.getByTestId('auth-modal-password').fill('password123');
+    await page.getByTestId('auth-modal-submit').click();
+    // Server URL should be saved regardless of login success
+    const savedUrl = await page.evaluate(() => localStorage.getItem('apiforge-server-url'));
+    expect(savedUrl).toBe('http://localhost:8090');
+  });
+
+  test('should restore server URL when reopening modal', {
+    annotation: [
+      { type: 'feature', description: 'app-auth' },
+      { type: 'severity', description: 'high' },
+      { type: 'owner', description: 'auth' },
+    ],
+  }, async ({ page }) => {
+    await test.step('Setup: Save server URL', async () => {
+      await page.evaluate(() => localStorage.setItem('apiforge-server-url', 'https://api.example.com'));
+    });
+
+    await test.step('Verify: URL restored in modal', async () => {
+      await page.getByRole('button', { name: 'Login' }).click();
+      await expect(page.getByTestId('auth-modal-server')).toHaveValue('https://api.example.com');
+    });
+  });
+
+  test('should strip trailing slash from server URL', {
+    annotation: [
+      { type: 'feature', description: 'app-auth' },
+      { type: 'severity', description: 'medium' },
+      { type: 'owner', description: 'auth' },
+    ],
+  }, async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
+    await page.getByTestId('auth-modal-server').fill('http://localhost:8090/');
+    await page.getByTestId('auth-modal-username').fill('testuser');
+    await page.getByTestId('auth-modal-password').fill('password123');
+    await page.getByTestId('auth-modal-submit').click();
+    const savedUrl = await page.evaluate(() => localStorage.getItem('apiforge-server-url'));
+    expect(savedUrl).toBe('http://localhost:8090');
+  });
 });
 
 // ─── Collection CRUD Tests ────────────────────────────────
