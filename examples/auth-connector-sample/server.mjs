@@ -56,7 +56,22 @@ const server = createServer((req, res) => {
     const results = q
       ? users.filter(u => u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q))
       : users;
-    json(res, 200, results);
+    json(res, 200, { users: results });
+    return;
+  }
+
+  // POST /users/search (APIForge web app uses POST with {query})
+  if (req.method === 'POST' && url.pathname === '/users/search') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      let q = '';
+      try { q = (JSON.parse(body).query || '').toLowerCase(); } catch {}
+      const results = q
+        ? users.filter(u => u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q))
+        : users;
+      json(res, 200, { users: results });
+    });
     return;
   }
 

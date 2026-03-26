@@ -41,6 +41,7 @@ export default defineConfig({
     { name: 'auth', use: { browserName: 'chromium' }, testMatch: ['app-auth.spec.js'] },
     { name: 'auth-types', use: { browserName: 'chromium' }, testMatch: ['auth-types.spec.js'] },
     { name: 'auth-connector', use: { browserName: 'chromium' }, testMatch: ['auth-connector.spec.js'] },
+    { name: 'auth-connector-live', use: { browserName: 'chromium' }, testMatch: ['auth-connector-live.spec.js'] },
     { name: 'admin', use: { browserName: 'chromium' }, testMatch: ['admin.spec.js'] },
     { name: 'cli-auth', use: { browserName: 'chromium' }, testMatch: ['cli-auth.spec.js'] },
     { name: 'grpc', use: { browserName: 'chromium' }, testMatch: ['grpc-support.spec.js'] },
