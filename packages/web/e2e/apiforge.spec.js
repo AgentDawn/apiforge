@@ -23,7 +23,7 @@ test.describe('APIForge Web UI', () => {
     ],
   }, async ({ page }) => {
     await test.step('Verify: Check sidebar elements', async () => {
-      await expect(page.locator('h1')).toHaveText('APIForge');
+      await expect(page.locator('.sidebar h1')).toHaveText('APIForge');
       await expect(page.locator('.version')).toHaveText('v0.1.0');
       await expect(page.locator('#import-file-btn')).toBeVisible();
     });

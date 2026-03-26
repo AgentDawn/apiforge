@@ -129,6 +129,73 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	// Check if any users already exist
+	row, err := h.DB.QueryRow("SELECT COUNT(*) as cnt FROM users")
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	if row != nil {
+		if cnt, ok := row["cnt"].(float64); ok && cnt > 0 {
+			writeError(w, http.StatusConflict, "server is already initialized")
+			return
+		}
+	}
+
+	var req model.RegisterRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Username == "" || req.Password == "" {
+		writeError(w, http.StatusBadRequest, "username and password are required")
+		return
+	}
+
+	if len(req.Password) < 6 {
+		writeError(w, http.StatusBadRequest, "password must be at least 6 characters")
+		return
+	}
+
+	hash, err := auth.HashPassword(req.Password)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to hash password")
+		return
+	}
+
+	id := auth.GenerateID()
+	err = h.DB.ExecuteOne(
+		"INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)",
+		id, req.Username, hash,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to create admin user")
+		return
+	}
+
+	token, err := auth.CreateToken(id, req.Username, 24*time.Hour)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to create token")
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, model.LoginResponse{
+		Token: token,
+		User: model.User{
+			ID:        id,
+			Username:  req.Username,
+			CreatedAt: time.Now(),
+		},
+	})
+}
+
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")

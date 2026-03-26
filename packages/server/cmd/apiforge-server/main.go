@@ -72,11 +72,21 @@ func main() {
 	// Public docs (no auth required)
 	mux.Handle("/public/docs/", publicDocsHandler)
 
-	// Health check
+	// Health check (includes initialization status)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"ok","service":"apiforge-server"}`))
+		initialized := false
+		row, err := dbClient.QueryRow("SELECT COUNT(*) as cnt FROM users")
+		if err == nil && row != nil {
+			if cnt, ok := row["cnt"].(float64); ok && cnt > 0 {
+				initialized = true
+			}
+		}
+		fmt.Fprintf(w, `{"status":"ok","initialized":%t,"version":"0.1.0"}`, initialized)
 	})
+
+	// Initial admin setup (only when no users exist)
+	mux.HandleFunc("/auth/setup", authHandler.Setup)
 
 	// Static file serving (for local dev mode without nginx)
 	webDir := getEnv("WEB_DIR", "")
@@ -107,7 +117,8 @@ func main() {
 	fmt.Println("    POST /api/agent/chat   - Agent Mode (Claude CLI)")
 	fmt.Println("    POST /api/collections/{id}/share - Create share link")
 	fmt.Println("    GET  /public/docs/{token}       - Public API docs")
-	fmt.Println("    GET  /health                    - Health check")
+	fmt.Println("    POST /auth/setup                - Initial admin setup")
+	fmt.Println("    GET  /health                    - Health check (includes init status)")
 
 	if err := http.ListenAndServe(addr, server); err != nil {
 		log.Fatal(err)

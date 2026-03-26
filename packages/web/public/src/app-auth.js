@@ -304,8 +304,189 @@ function initAppAuth() {
   }
 }
 
+// ─── Onboarding Flow ─────────────────────────────────────
+function hideOnboarding() {
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function showOnboardingError(stepId, msg) {
+  const el = document.getElementById(stepId);
+  if (el) {
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+}
+
+function showOnboardingStep(step) {
+  ['onboarding-step-server', 'onboarding-step-setup', 'onboarding-step-login'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = id === step ? '' : 'none';
+  });
+}
+
+function initOnboarding() {
+  const serverUrl = localStorage.getItem(SERVER_URL_KEY);
+  let authData = null;
+  try {
+    authData = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY));
+  } catch { /* ignore */ }
+
+  // If already have server URL and a token, skip onboarding
+  if (serverUrl && authData && authData.token) {
+    hideOnboarding();
+    return;
+  }
+
+  // Skip onboarding in dev/test mode or when programmatically requested
+  if (window.__skipOnboarding || window.location.port === '3001') {
+    hideOnboarding();
+    return;
+  }
+
+  // Connect button
+  const connectBtn = document.getElementById('onboarding-connect-btn');
+  if (connectBtn) {
+    connectBtn.addEventListener('click', async () => {
+      const urlInput = document.getElementById('onboarding-server-url');
+      const serverUrl = (urlInput?.value || '').trim().replace(/\/+$/, '');
+      const errorId = 'onboarding-server-error';
+
+      if (!serverUrl) {
+        showOnboardingError(errorId, 'Please enter a server URL');
+        return;
+      }
+
+      connectBtn.disabled = true;
+      connectBtn.textContent = 'Connecting...';
+      document.getElementById(errorId).style.display = 'none';
+
+      try {
+        const resp = await fetch(serverUrl + '/health');
+        const data = await resp.json();
+
+        localStorage.setItem(SERVER_URL_KEY, serverUrl);
+
+        if (data.initialized === false) {
+          showOnboardingStep('onboarding-step-setup');
+        } else {
+          showOnboardingStep('onboarding-step-login');
+        }
+      } catch (err) {
+        showOnboardingError(errorId, 'Cannot connect to server: ' + err.message);
+      } finally {
+        connectBtn.disabled = false;
+        connectBtn.textContent = 'Connect';
+      }
+    });
+  }
+
+  // Setup button (create admin)
+  const setupBtn = document.getElementById('onboarding-setup-btn');
+  if (setupBtn) {
+    setupBtn.addEventListener('click', async () => {
+      const username = (document.getElementById('onboarding-admin-username')?.value || '').trim();
+      const password = document.getElementById('onboarding-admin-password')?.value || '';
+      const errorId = 'onboarding-setup-error';
+
+      if (!username || !password) {
+        showOnboardingError(errorId, 'Username and password are required');
+        return;
+      }
+      if (password.length < 6) {
+        showOnboardingError(errorId, 'Password must be at least 6 characters');
+        return;
+      }
+
+      setupBtn.disabled = true;
+      setupBtn.textContent = 'Creating...';
+      document.getElementById(errorId).style.display = 'none';
+
+      try {
+        const serverUrl = localStorage.getItem(SERVER_URL_KEY);
+        const resp = await fetch(serverUrl + '/auth/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.token) {
+          appAuthState.token = data.token;
+          appAuthState.user = data.user;
+          saveAuthState();
+          updateAuthUI();
+          hideOnboarding();
+          loadSavedCollections();
+        } else {
+          showOnboardingError(errorId, data?.error || 'Setup failed');
+        }
+      } catch (err) {
+        showOnboardingError(errorId, 'Connection error: ' + err.message);
+      } finally {
+        setupBtn.disabled = false;
+        setupBtn.textContent = 'Create Admin & Login';
+      }
+    });
+  }
+
+  // Login button
+  const loginBtn = document.getElementById('onboarding-login-btn');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+      const username = (document.getElementById('onboarding-username')?.value || '').trim();
+      const password = document.getElementById('onboarding-password')?.value || '';
+      const errorId = 'onboarding-login-error';
+
+      if (!username || !password) {
+        showOnboardingError(errorId, 'Username and password are required');
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Logging in...';
+      document.getElementById(errorId).style.display = 'none';
+
+      try {
+        const serverUrl = localStorage.getItem(SERVER_URL_KEY);
+        const resp = await fetch(serverUrl + '/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.token) {
+          appAuthState.token = data.token;
+          appAuthState.user = data.user;
+          saveAuthState();
+          updateAuthUI();
+          hideOnboarding();
+          loadSavedCollections();
+        } else {
+          showOnboardingError(errorId, data?.error || 'Login failed');
+        }
+      } catch (err) {
+        showOnboardingError(errorId, 'Connection error: ' + err.message);
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
+      }
+    });
+  }
+
+  // Skip button
+  const skipBtn = document.getElementById('onboarding-skip-btn');
+  if (skipBtn) {
+    skipBtn.addEventListener('click', () => {
+      hideOnboarding();
+    });
+  }
+}
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAppAuth);
+  document.addEventListener('DOMContentLoaded', () => { initAppAuth(); initOnboarding(); });
 } else {
   initAppAuth();
+  initOnboarding();
 }
