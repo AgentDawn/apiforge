@@ -18,59 +18,61 @@ Open-source API client, documentation generator, and test runner. Postman/Swagge
 - **Shareable Links**: Generate base64-encoded links to share requests
 - **Comprehensive Testing**: 370+ Playwright e2e tests
 
-## Quick Start - Docker
+## Get Started
 
-Deploy the full stack (server, web, database) in seconds:
+### 1. Start the Server
 
 ```bash
 docker compose pull && docker compose up
 ```
 
-Open http://localhost:3000 in your browser. On first run, create an admin account.
+This starts the database (rqlite), backend server (:8090), and web UI (:3000).
 
-## Quick Start - CLI
+### 2. Open the Client
 
-Install the CLI from [GitHub Releases](https://github.com/agentdawn/apiforge/releases) or build from source:
+Choose one:
+
+- **Web**: Open http://localhost:3000
+- **Desktop**: Download from [GitHub Releases](https://github.com/agentdawn/apiforge/releases) (Windows `.msi`, macOS `.dmg`, Linux `.AppImage`)
+- **CLI**: Download the binary from [GitHub Releases](https://github.com/agentdawn/apiforge/releases) or build from source:
+  ```bash
+  cd packages/apiforge-rs && cargo build --release
+  ```
+
+### 3. Connect and Login
+
+On first launch, the onboarding screen asks for:
+
+1. **Server URL** (e.g. `http://localhost:8090`)
+2. **Admin setup** (if the server is fresh) or **Login** (if already initialized)
+
+For CLI:
 
 ```bash
-cd packages/apiforge-rs
-cargo build --release
-```
-
-Basic workflow:
-
-```bash
-# Configure server and login
 apiforge auth server http://localhost:8090
 apiforge auth login -u admin -p secret
+```
 
-# Import an API spec
+### 4. Import a Spec and Start Testing
+
+```bash
+# Import an OpenAPI spec
 apiforge import ./openapi.json
 
 # Create an environment
 apiforge env create prod --base-url https://api.example.com
 
-# Send a request
+# Send requests
 apiforge run GET /pets -e prod
 apiforge run POST /pets -d '{"name":"Buddy"}' -e prod
 
 # Export as cURL
 apiforge run GET /pets -e prod --curl
-
-# Generate OpenAPI spec from NestJS source
-apiforge generate-spec --src ./src -o spec.json
-
-# Push spec to server
-apiforge collections push --file ./openapi.json --name "My API"
-
-# View request history
-apiforge history list
-
-# Generate a report
-apiforge report -f markdown -o report.md
 ```
 
-## CLI Commands Reference
+Or in the web/desktop UI: click **Open File** to import a spec, then browse endpoints and click **Try it**.
+
+## CLI Commands
 
 | Command | Purpose |
 |---------|---------|
@@ -83,49 +85,23 @@ apiforge report -f markdown -o report.md
 | `report` | Generate reports from request history (markdown, json, html) |
 | `screenshot` | Take screenshots of URLs with optional highlights |
 | `share` | Create shareable links for API requests |
-| `auth` | Authentication (login, register, status, whoami, logout, connector) |
+| `auth` | Authentication (login, register, server, connector, search, switch) |
 | `import` | Import OpenAPI/Postman specs as collections |
 | `collections` | Server-side collection management (list, push, pull, delete) |
 | `spec` | Browse imported specs/collections |
 | `deploy` | Generate spec from source and deploy to server |
 
-## Quick Start - Web App
-
-Develop the web UI locally:
-
-```bash
-cd packages/web
-npm install
-node dev-server.mjs
-```
-
-Open http://localhost:3000. The dev server includes hot reload.
-
-## Quick Start - Desktop App
-
-Download pre-built binaries from [GitHub Releases](https://github.com/agentdawn/apiforge/releases):
-
-- **Windows**: `APIForge-windows.msi` or `.exe`
-- **macOS**: `APIForge-macos.dmg`
-- **Linux**: `APIForge-linux.AppImage` or `.deb`
-
-Or build from source:
-
-```bash
-cd packages/desktop
-npm install
-npx tauri build
-```
+Run `apiforge help` for a full guide, or `apiforge help <command>` for command-specific examples.
 
 ## NestJS Integration
 
-Use the `@apiforge/nestjs` package as a drop-in replacement for `@nestjs/swagger`:
+Use `@apiforge/nestjs` as a drop-in replacement for `@nestjs/swagger`:
 
 ```bash
 npm install @apiforge/nestjs
 ```
 
-Decorate your NestJS controllers and generate OpenAPI specs automatically:
+Generate and deploy specs from source:
 
 ```bash
 apiforge generate-spec --src ./src -o openapi.json
@@ -134,21 +110,50 @@ apiforge deploy -s ./src -e prod
 
 ## Docker Images
 
-Pre-built images are available on GitHub Container Registry:
+Pre-built images on GitHub Container Registry:
 
 ```bash
-# Web UI
-docker pull ghcr.io/agentdawn/apiforge/web:latest
-
-# Backend server
 docker pull ghcr.io/agentdawn/apiforge/server:latest
+docker pull ghcr.io/agentdawn/apiforge/web:latest
 ```
 
-Or use `docker compose` to run both together with the database.
+Or use `docker compose` to run everything together:
+
+```bash
+docker compose pull && docker compose up
+```
+
+## Environment Variables
+
+Substitute variables using `{{variable}}` syntax:
+
+```bash
+apiforge env create prod --base-url https://api.example.com --set api_key=abc123
+apiforge run GET {{base_url}}/pets -H "Authorization: Bearer {{api_key}}" -e prod
+apiforge run GET /pets -e prod --var api_key=xyz789
+```
+
+## Authentication
+
+| Type | Description |
+|------|-------------|
+| Bearer Token | `Authorization: Bearer <token>` |
+| Basic Auth | `Authorization: Basic <base64>` |
+| API Key | Custom header, query parameter, or cookie |
+| Connector | Impersonate users via search + token endpoints |
+
+Connector setup for multi-tenant testing:
+
+```bash
+apiforge auth connector-config \
+  --search-url http://localhost:3002/admin/users/search \
+  --token-url http://localhost:3002/admin/users/{id}/token
+
+apiforge auth search "alice"
+apiforge auth switch alice@example.com
+```
 
 ## Running Tests
-
-Run the full test suite:
 
 ```bash
 # Web e2e tests (Playwright)
@@ -168,77 +173,26 @@ cargo test
 apiforge/
 ├── packages/
 │   ├── apiforge-rs/         # Rust CLI (14 commands)
-│   │   └── crates/apiforge-cli/
-│   ├── web/                 # Vanilla JS SPA with Playwright tests
-│   ├── server/              # Go backend (HTTP + gRPC)
-│   ├── desktop/             # Tauri desktop app (Windows, macOS, Linux)
-│   ├── nestjs/              # @apiforge/nestjs decorators package
-│   ├── npm/                 # npm CLI distribution wrapper
-│   ├── cli/                 # Legacy Node.js CLI (deprecated)
-│   ├── core/                # Legacy Node.js core (deprecated)
-│   └── spec-generator/      # Legacy Rust spec generator (merged into apiforge-rs)
+│   ├── web/                 # Vanilla JS SPA + Playwright tests
+│   ├── server/              # Go backend (rqlite database)
+│   ├── desktop/             # Tauri desktop app
+│   ├── nestjs/              # @apiforge/nestjs decorators
+│   └── npm/                 # npm CLI distribution wrapper
 ├── examples/
-│   ├── nestjs-sample/       # Complete NestJS example project
-│   └── auth-connector-sample/ # Auth connector configuration example
-├── backend/                 # Alternative Go backend
-└── docker-compose.yml       # Full stack deployment (server, web, database)
+│   ├── nestjs-sample/       # NestJS example project
+│   └── auth-connector-sample/ # Auth connector example server
+└── docker-compose.yml       # Full stack deployment
 ```
 
 ## Architecture
 
 APIForge is a polyglot monorepo:
 
-- **CLI**: Rust (high-performance, cross-platform binaries)
-- **Server**: Go (HTTP/gRPC backend, lightweight)
-- **Web**: Vanilla JavaScript SPA (no frameworks, minimal dependencies)
-- **Desktop**: Tauri (Rust + WebView, native apps)
+- **CLI**: Rust (cross-platform binaries)
+- **Server**: Go (HTTP backend + rqlite)
+- **Web**: Vanilla JavaScript SPA (no frameworks)
+- **Desktop**: Tauri (Rust + WebView)
 - **NestJS Package**: TypeScript (framework integration)
-
-## Environment Variables
-
-Substitute variables in requests using `{{variable}}` syntax:
-
-```bash
-# Create environment with variables
-apiforge env create prod --base-url https://api.example.com --set api_key=abc123
-
-# Reference variables in requests
-apiforge run GET {{base_url}}/pets -H "Authorization: Bearer {{api_key}}" -e prod
-
-# Override variables per-request
-apiforge run GET /pets -e prod --var api_key=xyz789
-```
-
-## Authentication Types
-
-- **Bearer Token**: `Authorization: Bearer <token>`
-- **Basic Auth**: `Authorization: Basic <base64>`
-- **API Key**: Custom header or query parameter
-- **Connector**: Impersonate users for testing via search + token endpoints
-
-Configure connectors for multi-tenant testing:
-
-```bash
-apiforge auth connector-config \
-  --search-url http://localhost:3002/admin/users/search \
-  --token-url http://localhost:3002/admin/users/{id}/token
-
-apiforge auth search "alice"
-apiforge auth switch alice@example.com
-```
-
-## Supported Spec Formats
-
-- **OpenAPI 3.x**: JSON or YAML format
-- **Postman Collections**: JSON format
-- **NestJS Source**: Automatic generation from TypeScript decorators
-
-Import via URL or local file:
-
-```bash
-apiforge import ./openapi.json
-apiforge import https://petstore.swagger.io/v2/swagger.json --name "Petstore"
-```
 
 ## Development
 
@@ -247,43 +201,27 @@ apiforge import https://petstore.swagger.io/v2/swagger.json --name "Petstore"
 - Node.js >= 18.3.0
 - Rust (for CLI and desktop)
 - Go (for server)
-- Docker (optional, for easy deployment)
+- Docker (for deployment)
 
-### Setup
+### Local Development
 
 ```bash
-# Install web dependencies
-cd packages/web && npm install
+# Web UI (dev server with hot reload)
+cd packages/web && npm install && node dev-server.mjs
 
-# Build Rust CLI
+# Rust CLI
 cd packages/apiforge-rs && cargo build --release
 
-# Build desktop app
+# Desktop app
 cd packages/desktop && npm install && npx tauri build
-```
-
-### Code Quality
-
-```bash
-# Lint JavaScript
-npm run lint
-
-# Format code
-npm run format
 ```
 
 ## License
 
-MIT - See LICENSE file for details.
+MIT
 
 ## Contributing
 
-Contributions are welcome. Please ensure:
+Contributions welcome. Please ensure all tests pass and commits are descriptive.
 
-- All tests pass locally
-- Code follows the project style
-- Commits are descriptive
-
-## Community
-
-Report issues and request features on [GitHub Issues](https://github.com/agentdawn/apiforge/issues).
+Report issues at [GitHub Issues](https://github.com/agentdawn/apiforge/issues).
