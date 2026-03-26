@@ -304,6 +304,10 @@ body { font-family: var(--font); background: var(--bg-base, var(--bg-primary)); 
 .tab:hover { color: var(--text-primary); }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
+/* ─── Tab Content Panels (layout consistency) ───────────── */
+#tab-params, #tab-headers, #tab-body, #tab-auth { min-height: 200px; padding: 16px 0; }
+.body-type-selector + .je-editor, .body-type-selector + #body-xml-editor, .body-type-selector + #form-urlencoded-fields, .body-type-selector + #form-data-fields { min-height: 120px; }
+
 /* ─── Body Editor ────────────────────────────────────────── */
 .body-editor { width: 100%; min-height: 120px; background: var(--bg-input); border: 1px solid var(--border-ghost); border-radius: var(--radius); color: var(--text-primary); font-family: var(--mono); font-size: 13px; padding: 12px; resize: vertical; }
 .body-editor:focus { outline: none; border-color: var(--accent); }
@@ -314,7 +318,7 @@ body { font-family: var(--font); background: var(--bg-base, var(--bg-primary)); 
 /* ─── Params Table ───────────────────────────────────────── */
 .params-table { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
 .params-table thead th { padding:10px 14px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); background:var(--bg-secondary); border-bottom:1px solid var(--border); font-weight:600; }
-.params-table tbody td { padding:10px 14px; border-bottom:1px solid var(--border-subtle); vertical-align:middle; }
+.params-table tbody td { padding:8px 12px; border-bottom:1px solid var(--border-subtle); vertical-align:middle; }
 .params-table tbody tr:last-child td { border-bottom:none; }
 .params-table tbody tr:hover { background: var(--accent-subtle); }
 .param-name { background: var(--accent-subtle); color:var(--accent-hover); padding:2px 8px; border-radius:4px; font-size:12px; font-family:var(--mono); }
@@ -472,7 +476,7 @@ body { font-family: var(--font); background: var(--bg-base, var(--bg-primary)); 
 /* ─── Key-Value Tables ───────────────────────────────────── */
 .kv-table { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
 .kv-table thead th { padding:8px 12px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); background:var(--bg-secondary); border-bottom:1px solid var(--border); font-weight:600; }
-.kv-table tbody td { padding:6px 8px; border-bottom:1px solid var(--border-subtle); vertical-align:middle; }
+.kv-table tbody td { padding:8px 12px; border-bottom:1px solid var(--border-subtle); vertical-align:middle; }
 .kv-table tbody tr:last-child td { border-bottom:none; }
 .kv-table .kv-input { width:100%; background:transparent; border:1px solid transparent; color:var(--text-primary); font-family:var(--mono); font-size:12px; padding:6px 8px; border-radius:4px; outline:none; }
 .kv-table .kv-input:focus { border-color:var(--accent); background:var(--bg-primary); }
