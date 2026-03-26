@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe, UploadedFile, UseInterceptors, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe, UploadedFile, UseInterceptors, UseGuards, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { JwtGuard } from '../auth/jwt.guard';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiOkResponse, ApiCreatedResponse, ApiParam, ApiQuery, ApiResponse, ApiConsumes, ApiBody, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { CreatePetDto, UpdatePetDto, PetResponseDto, PetListResponseDto } from './pet.dto';
 
@@ -46,6 +47,8 @@ export class PetController {
   @ApiOperation({ summary: '펫 등록', description: '새로운 펫을 등록합니다.' })
   @ApiCreatedResponse({ type: PetResponseDto, description: '생성된 펫 정보' })
   @ApiResponse({ status: 400, description: '잘못된 요청' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - JWT token missing or invalid' })
+  @UseGuards(JwtGuard)
   @Post()
   async create(@Body() dto: CreatePetDto): Promise<PetResponseDto> {
     if (!dto.name) {

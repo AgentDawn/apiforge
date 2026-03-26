@@ -187,4 +187,118 @@ test.describe('Auth Connector - Live Server', () => {
       expect(token).toContain('.'); // JWT-like format
     });
   });
+
+  test('should authenticate with connector token and pass JWT guard on POST /pets', {
+    annotation: [
+      { type: 'feature', description: 'auth-connector-live' },
+      { type: 'severity', description: 'critical' },
+      { type: 'owner', description: 'auth' },
+    ],
+  }, async ({ page }) => {
+    // Reconfigure connector to use NestJS admin controller (port 3002)
+    await page.locator('#connector-search-url').fill('http://localhost:3002/admin/users/search');
+    await page.locator('#connector-token-url').fill('http://localhost:3002/admin/users/{id}/token');
+    await page.locator('#connector-save-config').click();
+
+    await test.step('Verify: POST /pets without token returns 401', async () => {
+      const status401 = await page.evaluate(async () => {
+        const res = await fetch('http://localhost:3002/api/v1/pets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'NoAuth_' + Date.now(), species: 'dog' }),
+        });
+        return res.status;
+      });
+      expect(status401).toBe(401);
+    });
+
+    await test.step('Setup: Get connector token for admin', async () => {
+      await page.locator('#connector-search-input').fill('admin');
+      await page.locator('#connector-search-btn').click();
+      await expect(page.locator('#connector-results')).toContainText('admin@test.com', { timeout: 5000 });
+      await page.locator('[data-testid="connector-get-token-btn"]').first().click();
+      await expect(page.locator('#connector-active-token')).toBeVisible({ timeout: 5000 });
+    });
+
+    await test.step('Action: POST /pets with connector token', async () => {
+      const result = await page.evaluate(async () => {
+        const token = window._connectorToken;
+        const res = await fetch('http://localhost:3002/api/v1/pets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+          },
+          body: JSON.stringify({ name: 'AuthTest_' + Date.now(), species: 'cat' }),
+        });
+        return { status: res.status, data: await res.json() };
+      });
+      expect(result.status).toBe(201);
+      expect(result.data.name).toContain('AuthTest');
+    });
+  });
+
+  test('should switch user and authenticate as different identity', {
+    annotation: [
+      { type: 'feature', description: 'auth-connector-live' },
+      { type: 'severity', description: 'critical' },
+      { type: 'owner', description: 'auth' },
+    ],
+  }, async ({ page }) => {
+    // Reconfigure connector to use NestJS admin controller (port 3002)
+    await page.locator('#connector-search-url').fill('http://localhost:3002/admin/users/search');
+    await page.locator('#connector-token-url').fill('http://localhost:3002/admin/users/{id}/token');
+    await page.locator('#connector-save-config').click();
+
+    await test.step('Setup: Get token as admin, verify identity', async () => {
+      await page.locator('#connector-search-input').fill('admin');
+      await page.locator('#connector-search-btn').click();
+      await expect(page.locator('#connector-results')).toContainText('admin@test.com', { timeout: 5000 });
+      await page.locator('[data-testid="connector-get-token-btn"]').first().click();
+      await expect(page.locator('#connector-active-token')).toBeVisible({ timeout: 5000 });
+
+      const adminPayload = await page.evaluate(() => {
+        const token = window._connectorToken;
+        const parts = token.split('.');
+        return JSON.parse(atob(parts[1]));
+      });
+      expect(adminPayload.email).toBe('admin@test.com');
+      expect(adminPayload.role).toBe('admin');
+    });
+
+    await test.step('Action: Switch to regular user', async () => {
+      await page.locator('#connector-search-input').fill('user@test');
+      await page.locator('#connector-search-btn').click();
+      await expect(page.locator('#connector-results')).toContainText('user@test.com', { timeout: 5000 });
+      await page.locator('[data-testid="connector-get-token-btn"]').first().click();
+      await expect(page.locator('#connector-active-user')).toContainText('user@test.com', { timeout: 5000 });
+    });
+
+    await test.step('Verify: Token identity changed to regular user', async () => {
+      const userPayload = await page.evaluate(() => {
+        const token = window._connectorToken;
+        const parts = token.split('.');
+        return JSON.parse(atob(parts[1]));
+      });
+      expect(userPayload.email).toBe('user@test.com');
+      expect(userPayload.role).toBe('user');
+    });
+
+    await test.step('Verify: Can still call protected API with new token', async () => {
+      const result = await page.evaluate(async () => {
+        const token = window._connectorToken;
+        const res = await fetch('http://localhost:3002/api/v1/pets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+          },
+          body: JSON.stringify({ name: 'UserPet_' + Date.now(), species: 'bird' }),
+        });
+        return { status: res.status, data: await res.json() };
+      });
+      expect(result.status).toBe(201);
+      expect(result.data.name).toContain('UserPet');
+    });
+  });
 });
