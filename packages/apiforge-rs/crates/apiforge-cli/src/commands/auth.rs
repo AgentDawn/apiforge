@@ -52,8 +52,11 @@ pub async fn execute(action: AuthAction) -> Result<()> {
                     username: None,
                 });
                 config.server_url = Some(new_url.clone());
+                config.token = None;
+                config.username = None;
                 server::save_auth(&config)?;
                 println!("{}", format!("Server URL set to: {}", new_url).green());
+                println!("Credentials cleared. Please login again: apiforge auth login -u <user> -p <pass>");
             } else {
                 println!("Current server: {}", server::get_server_url());
             }
