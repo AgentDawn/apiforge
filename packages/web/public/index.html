@@ -328,6 +328,7 @@
   <dialog id="auth-modal" style="background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:320px;">
     <h2 id="auth-modal-title" style="margin-bottom:16px;font-size:18px;">Login</h2>
     <form id="auth-modal-form" style="display:flex;flex-direction:column;gap:12px;">
+      <input class="url-input" id="auth-modal-server" data-testid="auth-modal-server" placeholder="Server URL (e.g. http://localhost:8090)" style="font-size:13px;padding:10px 14px;font-family:var(--mono);">
       <input class="url-input" id="auth-modal-username" data-testid="auth-modal-username" placeholder="Username" autocomplete="username" required style="font-size:14px;padding:10px 14px;">
       <input class="url-input" id="auth-modal-password" data-testid="auth-modal-password" type="password" placeholder="Password" autocomplete="current-password" required style="font-size:14px;padding:10px 14px;">
       <div id="auth-modal-error" data-testid="auth-modal-error" style="color:var(--error);font-size:13px;display:none;"></div>

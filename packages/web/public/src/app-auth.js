@@ -4,7 +4,11 @@
 const $ = (sel) => document.querySelector(sel);
 
 const AUTH_STORAGE_KEY = 'apiforge-app-auth';
-const API_BASE = ''; // Same origin (nginx proxies /auth and /api)
+const SERVER_URL_KEY = 'apiforge-server-url';
+
+function getApiBase() {
+  return localStorage.getItem(SERVER_URL_KEY) || '';
+}
 
 let appAuthState = {
   token: null,
@@ -17,7 +21,7 @@ async function apiFetch(path, options = {}) {
   if (appAuthState.token) {
     headers['Authorization'] = 'Bearer ' + appAuthState.token;
   }
-  const resp = await fetch(API_BASE + path, { ...options, headers });
+  const resp = await fetch(getApiBase() + path, { ...options, headers });
   const data = await resp.json().catch(() => null);
   return { status: resp.status, ok: resp.ok, data };
 }
@@ -79,6 +83,7 @@ function openAuthModal(mode) {
   const modal = $('#auth-modal');
   $('#auth-modal-title').textContent = mode === 'login' ? 'Login' : 'Register';
   $('#auth-modal-submit').textContent = mode === 'login' ? 'Login' : 'Register';
+  $('#auth-modal-server').value = localStorage.getItem(SERVER_URL_KEY) || '';
   $('#auth-modal-username').value = '';
   $('#auth-modal-password').value = '';
   $('#auth-modal-error').style.display = 'none';
@@ -106,6 +111,10 @@ async function handleAuthSubmit(e) {
     errorEl.style.display = 'block';
     return;
   }
+
+  // Save server URL
+  const serverUrl = ($('#auth-modal-server')?.value || '').trim().replace(/\/+$/, '');
+  localStorage.setItem(SERVER_URL_KEY, serverUrl);
 
   const endpoint = modalMode === 'login' ? '/auth/login' : '/auth/register';
   const submitBtn = $('#auth-modal-submit');
@@ -255,7 +264,7 @@ window.appAuthState = appAuthState;
 // ─── Config: show/hide Register based on server config ───
 async function loadRegistrationConfig() {
   try {
-    const resp = await fetch('/config');
+    const resp = await fetch(getApiBase() + '/config');
     if (resp.ok) {
       const config = await resp.json();
       if (config.allowRegistration) {
