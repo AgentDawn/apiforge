@@ -34,6 +34,12 @@ Choose one:
 
 - **Web**: Open http://localhost:3000
 - **Desktop**: Download from [GitHub Releases](https://github.com/agentdawn/apiforge/releases) (Windows `.msi`, macOS `.dmg`, Linux `.AppImage`)
+
+  > **macOS**: 다운로드 후 "손상되었기 때문에 열 수 없습니다" 메시지가 나타나면, 터미널에서 아래 명령어를 실행하세요:
+  > ```bash
+  > xattr -cr /Applications/APIForge.app
+  > ```
+  > 이 앱은 오픈소스이며 Apple Developer 인증서로 서명되지 않아 macOS Gatekeeper가 차단합니다.
 - **CLI**: Download the binary from [GitHub Releases](https://github.com/agentdawn/apiforge/releases) or build from source:
   ```bash
   cd packages/apiforge-rs && cargo build --release
