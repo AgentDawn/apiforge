@@ -40,6 +40,8 @@ Choose one:
   > xattr -cr /Applications/APIForge.app
   > ```
   > 이 앱은 오픈소스이며 Apple Developer 인증서로 서명되지 않아 macOS Gatekeeper가 차단합니다.
+
+  > **Windows**: "Windows가 PC를 보호했습니다" 경고가 나타나면 "추가 정보" → "실행"을 클릭하세요. 이 앱은 오픈소스이며 코드 서명 인증서가 없어 SmartScreen이 차단합니다.
 - **CLI**: Download the binary from [GitHub Releases](https://github.com/agentdawn/apiforge/releases) or build from source:
   ```bash
   cd packages/apiforge-rs && cargo build --release
