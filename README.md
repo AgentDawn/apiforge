@@ -35,13 +35,13 @@ Choose one:
 - **Web**: Open http://localhost:3000
 - **Desktop**: Download from [GitHub Releases](https://github.com/agentdawn/apiforge/releases) (Windows `.msi`, macOS `.dmg`, Linux `.AppImage`)
 
-  > **macOS**: 다운로드 후 "손상되었기 때문에 열 수 없습니다" 메시지가 나타나면, 터미널에서 아래 명령어를 실행하세요:
+  > **macOS**: If you see "app is damaged and can't be opened", run in Terminal:
   > ```bash
   > xattr -cr /Applications/APIForge.app
   > ```
-  > 이 앱은 오픈소스이며 Apple Developer 인증서로 서명되지 않아 macOS Gatekeeper가 차단합니다.
+  > This is an open-source app without an Apple Developer certificate, so macOS Gatekeeper blocks it.
 
-  > **Windows**: "Windows가 PC를 보호했습니다" 경고가 나타나면 "추가 정보" → "실행"을 클릭하세요. 이 앱은 오픈소스이며 코드 서명 인증서가 없어 SmartScreen이 차단합니다.
+  > **Windows**: If you see "Windows protected your PC", click "More info" then "Run anyway". This app is open-source and not code-signed, so SmartScreen blocks it.
 - **CLI**: Download the binary from [GitHub Releases](https://github.com/agentdawn/apiforge/releases) or build from source:
   ```bash
   cd packages/apiforge-rs && cargo build --release
