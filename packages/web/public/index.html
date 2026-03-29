@@ -77,6 +77,7 @@
         </div>
         <div id="collection-tree" data-testid="collection-tree"></div>
         <!-- Saved collections from server -->
+        <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;"></div>
         <div id="saved-collections-list" data-testid="saved-collections-list" style="margin-top:8px;"></div>
       </div>
       <div class="sidebar-section hidden" id="collections-section">
@@ -348,7 +349,7 @@
   <!-- Search Modal (Cmd/Ctrl+K) -->
   <div class="search-modal hidden" id="search-modal" data-testid="search-modal">
     <div class="search-overlay"></div>
-    <div class="search-dialog">
+    <div class="search-dialog" role="dialog" aria-modal="true" aria-label="Search endpoints">
       <input class="search-input" id="search-input" data-testid="search-input" placeholder="Search endpoints..." autocomplete="off">
       <div class="search-results" id="search-results" data-testid="search-results"></div>
       <div class="search-footer">
@@ -393,7 +394,7 @@
     <div class="curl-import-overlay"></div>
     <div class="curl-import-dialog">
       <h3>Import cURL</h3>
-      <textarea id="curl-import-input" data-testid="curl-import-input" placeholder="Paste cURL command here..." rows="6"></textarea>
+      <textarea id="curl-import-input" data-testid="curl-import-input" placeholder="Paste cURL command here..." rows="6" aria-label="Paste cURL command"></textarea>
       <div class="curl-import-actions">
         <button class="btn btn-secondary" id="curl-import-cancel">Cancel</button>
         <button class="btn btn-primary" id="curl-import-submit" data-testid="curl-import-submit">Import</button>
@@ -407,11 +408,11 @@
     <div class="save-doc-dialog">
       <h3 id="save-doc-title">Create New API Doc</h3>
       <div id="save-doc-form">
-        <label>Doc Name</label>
+        <label for="save-doc-name">Doc Name</label>
         <input class="url-input" id="save-doc-name" data-testid="save-doc-name" placeholder="My API">
-        <label>Base URL</label>
+        <label for="save-doc-baseurl">Base URL</label>
         <input class="url-input" id="save-doc-baseurl" data-testid="save-doc-baseurl" placeholder="https://api.example.com">
-        <label>Version</label>
+        <label for="save-doc-version">Version</label>
         <input class="url-input" id="save-doc-version" data-testid="save-doc-version" value="1.0.0">
       </div>
       <div id="save-doc-existing" class="hidden">
