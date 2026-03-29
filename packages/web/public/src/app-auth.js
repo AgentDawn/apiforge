@@ -358,6 +358,7 @@ function initOnboarding() {
       }
 
       connectBtn.disabled = true;
+      connectBtn.classList.add('btn--loading');
       connectBtn.textContent = 'Connecting...';
       document.getElementById(errorId).style.display = 'none';
 
@@ -376,6 +377,7 @@ function initOnboarding() {
         showOnboardingError(errorId, 'Cannot connect to server: ' + err.message);
       } finally {
         connectBtn.disabled = false;
+        connectBtn.classList.remove('btn--loading');
         connectBtn.textContent = 'Connect';
       }
     });

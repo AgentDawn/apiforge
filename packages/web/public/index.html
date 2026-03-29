@@ -7,37 +7,37 @@
   <link rel="stylesheet" href="/src/styles/main.css">
 </head>
 <body>
-  <div id="onboarding-overlay" data-testid="onboarding-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:2000;background:var(--bg-base, var(--bg-primary));display:flex;align-items:center;justify-content:center;">
-    <div style="max-width:420px;width:90%;text-align:center;">
-      <h1 style="font-family:var(--font-headline);font-size:28px;font-weight:800;margin-bottom:8px;background:linear-gradient(135deg, var(--accent), #ff6bcb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">APIForge</h1>
-      <p style="color:var(--text-secondary);font-size:14px;margin-bottom:32px;">Connect to your APIForge server to get started</p>
+  <div id="onboarding-overlay" data-testid="onboarding-overlay" class="onboarding-overlay">
+    <div class="onboarding-card">
+      <h1 class="onboarding-title">APIForge</h1>
+      <p class="onboarding-subtitle">Connect to your APIForge server to get started</p>
 
       <!-- Step 1: Server URL -->
       <div id="onboarding-step-server" data-testid="onboarding-step-server">
-        <input class="url-input" id="onboarding-server-url" data-testid="onboarding-server-url" placeholder="Server URL (e.g. http://localhost:8090)" style="width:100%;font-size:14px;padding:12px 14px;font-family:var(--mono);margin-bottom:12px;">
-        <button class="btn btn-primary" id="onboarding-connect-btn" data-testid="onboarding-connect-btn" style="width:100%;padding:12px;font-size:14px;">Connect</button>
-        <div id="onboarding-server-error" data-testid="onboarding-server-error" style="color:var(--error);font-size:13px;margin-top:8px;display:none;"></div>
+        <input class="url-input onboarding-input" id="onboarding-server-url" data-testid="onboarding-server-url" placeholder="Server URL (e.g. http://localhost:8090)">
+        <button class="btn btn-primary onboarding-btn" id="onboarding-connect-btn" data-testid="onboarding-connect-btn">Connect</button>
+        <div id="onboarding-server-error" data-testid="onboarding-server-error" class="onboarding-error"></div>
       </div>
 
       <!-- Step 2: Setup Admin (if not initialized) -->
       <div id="onboarding-step-setup" data-testid="onboarding-step-setup" style="display:none;">
-        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">This server hasn't been set up yet. Create an admin account.</p>
-        <input class="url-input" id="onboarding-admin-username" data-testid="onboarding-admin-username" placeholder="Admin username" style="width:100%;font-size:14px;padding:12px 14px;margin-bottom:8px;">
-        <input class="url-input" id="onboarding-admin-password" data-testid="onboarding-admin-password" type="password" placeholder="Password (min 6 chars)" style="width:100%;font-size:14px;padding:12px 14px;margin-bottom:12px;">
-        <button class="btn btn-primary" id="onboarding-setup-btn" data-testid="onboarding-setup-btn" style="width:100%;padding:12px;font-size:14px;">Create Admin & Login</button>
-        <div id="onboarding-setup-error" data-testid="onboarding-setup-error" style="color:var(--error);font-size:13px;margin-top:8px;display:none;"></div>
+        <p class="onboarding-step-hint">This server hasn't been set up yet. Create an admin account.</p>
+        <input class="url-input onboarding-input" id="onboarding-admin-username" data-testid="onboarding-admin-username" placeholder="Admin username">
+        <input class="url-input onboarding-input" id="onboarding-admin-password" data-testid="onboarding-admin-password" type="password" placeholder="Password (min 6 chars)">
+        <button class="btn btn-primary onboarding-btn" id="onboarding-setup-btn" data-testid="onboarding-setup-btn">Create Admin & Login</button>
+        <div id="onboarding-setup-error" data-testid="onboarding-setup-error" class="onboarding-error"></div>
       </div>
 
       <!-- Step 3: Login (if initialized) -->
       <div id="onboarding-step-login" data-testid="onboarding-step-login" style="display:none;">
-        <input class="url-input" id="onboarding-username" data-testid="onboarding-username" placeholder="Username" style="width:100%;font-size:14px;padding:12px 14px;margin-bottom:8px;">
-        <input class="url-input" id="onboarding-password" data-testid="onboarding-password" type="password" placeholder="Password" style="width:100%;font-size:14px;padding:12px 14px;margin-bottom:12px;">
-        <button class="btn btn-primary" id="onboarding-login-btn" data-testid="onboarding-login-btn" style="width:100%;padding:12px;font-size:14px;">Login</button>
-        <div id="onboarding-login-error" data-testid="onboarding-login-error" style="color:var(--error);font-size:13px;margin-top:8px;display:none;"></div>
+        <input class="url-input onboarding-input" id="onboarding-username" data-testid="onboarding-username" placeholder="Username">
+        <input class="url-input onboarding-input" id="onboarding-password" data-testid="onboarding-password" type="password" placeholder="Password">
+        <button class="btn btn-primary onboarding-btn" id="onboarding-login-btn" data-testid="onboarding-login-btn">Login</button>
+        <div id="onboarding-login-error" data-testid="onboarding-login-error" class="onboarding-error"></div>
       </div>
 
       <!-- Skip option -->
-      <button id="onboarding-skip-btn" data-testid="onboarding-skip-btn" style="background:none;border:none;color:var(--text-muted);font-size:12px;margin-top:16px;cursor:pointer;">Skip - use without server</button>
+      <button id="onboarding-skip-btn" data-testid="onboarding-skip-btn" class="onboarding-skip">Skip - use without server</button>
     </div>
   </div>
 

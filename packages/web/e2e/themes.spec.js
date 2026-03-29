@@ -150,7 +150,7 @@ test.describe('Theme System', () => {
       const bodyBg = await page.evaluate(() =>
         getComputedStyle(document.body).backgroundColor
       );
-      expect(bodyBg).toBe('rgb(240, 241, 245)');
+      expect(bodyBg).toBe('rgb(232, 233, 239)');
     });
   });
 
