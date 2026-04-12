@@ -396,6 +396,7 @@ test.describe('gRPC Support - Proto Parser (via UI)', () => {
 
 const NESTJS_DIR = join(__dirname, '..', '..', '..', 'examples', 'nestjs-sample');
 const NESTJS_PORT = 3002;
+const NESTJS_GRPC_PORT = 50051;
 
 function waitForNestJSServer(port, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
@@ -470,7 +471,7 @@ test.describe('gRPC Support - Live gRPC Calls (NestJS Server)', () => {
     }, username);
     await page.reload();
     await page.evaluate((proto) => { loadProto(proto); appState.isSpecMode = false; }, protoContent);
-    await page.getByTestId('grpc-target').fill('localhost:' + NESTJS_PORT);
+    await page.getByTestId('grpc-target').fill('localhost:' + NESTJS_GRPC_PORT);
   }
 
   test('should call GetPet on NestJS gRPC server', {

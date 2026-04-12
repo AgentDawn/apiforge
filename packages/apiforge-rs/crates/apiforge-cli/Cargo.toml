@@ -18,3 +18,4 @@ serde_json = { workspace = true }
 anyhow = { workspace = true }
 crossterm = { workspace = true }
 url = { workspace = true }
+regex = { workspace = true }

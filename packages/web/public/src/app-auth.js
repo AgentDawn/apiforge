@@ -122,7 +122,7 @@ async function handleAuthSubmit(e) {
   submitBtn.textContent = modalMode === 'login' ? 'Logging in...' : 'Registering...';
 
   try {
-    const { status, ok, data } = await apiFetch(endpoint, {
+    const { ok, data } = await apiFetch(endpoint, {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
@@ -301,6 +301,12 @@ function initAppAuth() {
   // Load saved collections if logged in
   if (appAuthState.token) {
     loadSavedCollections();
+    // Also load server collections after app.js is ready
+    setTimeout(() => {
+      if (typeof window.refreshServerCollections === 'function') {
+        window.refreshServerCollections();
+      }
+    }, 1000);
   }
 }
 
@@ -308,6 +314,20 @@ function initAppAuth() {
 function hideOnboarding() {
   const overlay = document.getElementById('onboarding-overlay');
   if (overlay) overlay.style.display = 'none';
+  // Connect SSE for real-time updates once app is ready
+  if (typeof connectSSE === 'function') connectSSE();
+  // Load environments from server (slight delay to ensure app.js is ready)
+  setTimeout(() => {
+    if (typeof window.loadServerEnvironments === 'function') {
+      window.loadServerEnvironments();
+    }
+    if (typeof window.loadServerHistory === 'function') {
+      window.loadServerHistory();
+    }
+    if (typeof window.refreshServerCollections === 'function') {
+      window.refreshServerCollections();
+    }
+  }, 500);
 }
 
 function showOnboardingError(stepId, msg) {
@@ -485,6 +505,60 @@ function initOnboarding() {
     });
   }
 }
+
+// ─── SSE Real-time Events ─────────────────────────────────
+let eventSource = null;
+
+function connectSSE() {
+  const serverUrl = getApiBase();
+  if (!serverUrl || eventSource) return;
+
+  eventSource = new EventSource(serverUrl + '/events');
+
+  eventSource.addEventListener('connected', () => {
+    console.log('[SSE] Connected to server');
+    if (typeof window.refreshServerCollections === 'function') window.refreshServerCollections();
+  });
+
+  eventSource.addEventListener('collection:created', (e) => {
+    console.log('[SSE] Collection created:', e.data);
+    if (typeof window.refreshServerCollections === 'function') window.refreshServerCollections();
+  });
+
+  eventSource.addEventListener('collection:updated', (e) => {
+    console.log('[SSE] Collection updated:', e.data);
+    if (typeof window.refreshServerCollections === 'function') window.refreshServerCollections();
+  });
+
+  eventSource.addEventListener('collection:deleted', (e) => {
+    console.log('[SSE] Collection deleted:', e.data);
+    if (typeof window.refreshServerCollections === 'function') window.refreshServerCollections();
+  });
+
+  eventSource.addEventListener('history:created', (e) => {
+    console.log('[SSE] History created:', e.data);
+    if (typeof window.refreshServerHistory === 'function') window.refreshServerHistory();
+  });
+
+  eventSource.onerror = () => {
+    console.log('[SSE] Connection lost, reconnecting in 5s...');
+    eventSource.close();
+    eventSource = null;
+    setTimeout(connectSSE, 5000);
+  };
+}
+
+function disconnectSSE() {
+  if (eventSource) {
+    eventSource.close();
+    eventSource = null;
+  }
+}
+
+// Expose for use after login and from app.js
+window.connectSSE = connectSSE;
+window.disconnectSSE = disconnectSSE;
+window.apiFetchGlobal = apiFetch;
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => { initAppAuth(); initOnboarding(); });

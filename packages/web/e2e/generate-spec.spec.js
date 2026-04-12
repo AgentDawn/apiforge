@@ -6,7 +6,8 @@ import { readFileSync, unlinkSync, existsSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const srcDir = resolve(__dirname, '..', '..', '..', 'examples', 'nestjs-sample', 'src');
-const rustBinary = resolve(__dirname, '..', '..', '..', 'packages', 'spec-generator', 'target', 'release', 'apiforge-spec-generator.exe');
+const binExt = process.platform === 'win32' ? '.exe' : '';
+const rustBinary = resolve(__dirname, '..', '..', '..', 'packages', 'spec-generator', 'target', 'release', 'apiforge-spec-generator' + binExt);
 const outputFile = resolve(__dirname, '..', 'test-results', 'generate-spec-test.json');
 
 test.describe('Generate Spec → Web UI E2E', () => {

@@ -494,3 +494,55 @@ export function PickType<T, K extends keyof T>(
 
   return PickTypeClass as any;
 }
+
+export function OmitType<T, K extends keyof T>(
+  classRef: new (...args: any[]) => T,
+  keys: readonly K[],
+): new () => Omit<T, K> {
+  class OmitTypeClass {
+    constructor() {
+      try {
+        const instance = new (classRef as any)();
+        for (const prop of Object.keys(instance)) {
+          if (!(keys as readonly string[]).includes(prop)) {
+            (this as any)[prop] = (instance as any)[prop];
+          }
+        }
+      } catch {
+        // Constructor may require arguments; skip default value copying
+      }
+    }
+  }
+
+  const sourcePrototype = classRef.prototype;
+  const sourcePropsArray: string[] =
+    Reflect.getMetadata(APIFORGE_METADATA.API_PROPERTY_ARRAY, sourcePrototype) || [];
+  const omittedPropsArray = sourcePropsArray.filter((entry) => {
+    const propName = entry.startsWith(':') ? entry.slice(1) : entry;
+    return !(keys as readonly string[]).includes(propName);
+  });
+  Reflect.defineMetadata(
+    APIFORGE_METADATA.API_PROPERTY_ARRAY,
+    omittedPropsArray,
+    OmitTypeClass.prototype,
+  );
+
+  for (const entry of omittedPropsArray) {
+    const key = entry.startsWith(':') ? entry.slice(1) : entry;
+    const propMeta = Reflect.getMetadata(
+      APIFORGE_METADATA.API_PROPERTY,
+      sourcePrototype,
+      key,
+    );
+    if (propMeta) {
+      Reflect.defineMetadata(
+        APIFORGE_METADATA.API_PROPERTY,
+        propMeta,
+        OmitTypeClass.prototype,
+        key,
+      );
+    }
+  }
+
+  return OmitTypeClass as any;
+}

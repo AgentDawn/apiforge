@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::Result;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -71,31 +71,6 @@ pub fn list_services(proto_path: &str) -> Result<Vec<ServiceInfo>> {
             }
         })
         .collect())
-}
-
-/// Make a gRPC call to the specified address.
-/// TODO: Full gRPC calls require tonic-generated code from .proto files.
-/// This is a stub that validates inputs and returns an error directing users
-/// to use grpcurl or wait for full tonic codegen support.
-pub async fn call_grpc(
-    address: &str,
-    service: &str,
-    method: &str,
-    data: &str,
-) -> Result<String> {
-    // Validate the JSON data
-    let _: serde_json::Value = serde_json::from_str(data)
-        .map_err(|e| anyhow::anyhow!("Invalid JSON data: {}", e))?;
-
-    bail!(
-        "Direct gRPC calls are not yet supported in the Rust CLI.\n\
-         Service: {}.{} at {}\n\
-         \n\
-         For now, use grpcurl:\n\
-         grpcurl -plaintext -d '{}' {} {}.{}",
-        service, method, address,
-        data, address, service, method
-    )
 }
 
 #[cfg(test)]

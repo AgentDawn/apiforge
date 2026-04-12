@@ -33,6 +33,10 @@ gRPC:
   apiforge grpc list-services --proto service.proto
   apiforge grpc call MyService/GetItem --proto service.proto --address localhost:50051 -d '{}'
 
+Environment Variables:
+  APIFORGE_TOKEN      Auth token for non-interactive use (overrides saved login)
+  APIFORGE_SERVER     Server URL (overrides saved server, default: http://localhost:8090)
+
 For more details on any command: apiforge <command> --help"#)]
 struct Cli {
     #[command(subcommand)]
@@ -143,11 +147,17 @@ Also detects throw statements for automatic error response documentation.")]
         #[command(subcommand)]
         action: HistoryAction,
     },
-    /// gRPC operations
+    /// gRPC operations (call routes through APIForge server for dynamic protobuf)
     #[command(after_help = "Examples:
   apiforge grpc list-services --proto service.proto
   apiforge grpc call PetService/GetPet --proto pet.proto --address localhost:50051 -d '{\"id\": 1}'
-  apiforge grpc call PetService/ListPets --proto pet.proto --address localhost:50051 -d '{}'")]
+  apiforge grpc call PetService/ListPets --proto pet.proto --address localhost:50051 -d '{}'
+  apiforge grpc call AuthService/Login --proto auth.proto --address api.example.com:443 --tls -d '{}'
+
+`list-services` parses the .proto file locally (regex-based).
+`call` reads the .proto locally and sends it with the request to the APIForge
+server, which performs dynamic protobuf encoding and invokes the target gRPC
+server. `call` requires `apiforge auth login` first.")]
     Grpc {
         #[command(subcommand)]
         action: GrpcAction,
@@ -225,13 +235,16 @@ Connector (impersonate users for testing):
         #[command(subcommand)]
         action: AuthAction,
     },
-    /// Import an OpenAPI/Postman spec as a collection
+    /// Import an OpenAPI or Postman collection (auto-syncs to server if logged in)
     #[command(after_help = "Examples:
   apiforge import ./openapi.json
   apiforge import ./openapi.yaml --name \"My API\"
+  apiforge import ./postman_collection.json
   apiforge import https://petstore.swagger.io/v2/swagger.json
 
-Supports OpenAPI 3.x (JSON/YAML). Auto-creates environments from spec servers.")]
+Supports OpenAPI 3.x (JSON/YAML) and Postman Collection v2.1 (JSON).
+Auto-creates environments from OpenAPI spec servers.
+If logged in, the collection is also synced to the server.")]
     Import {
         /// File path or URL to import
         source: String,
@@ -259,6 +272,28 @@ Requires authentication: apiforge auth login first.")]
     Spec {
         #[command(subcommand)]
         action: SpecAction,
+    },
+    /// Migrate @nestjs/swagger imports to @apiforge/nestjs
+    #[command(after_help = "Examples:
+  apiforge migrate --src ./src --dry-run
+  apiforge migrate --src ./src -v
+  apiforge migrate --src ./src --skip-package-json
+
+Scans TypeScript files and replaces @nestjs/swagger decorator imports with @apiforge/nestjs.
+SwaggerModule and DocumentBuilder imports are kept on @nestjs/swagger.")]
+    Migrate {
+        /// Source directory to scan
+        #[arg(long = "src", default_value = ".")]
+        src: String,
+        /// Preview changes without modifying files
+        #[arg(long = "dry-run")]
+        dry_run: bool,
+        /// Verbose output
+        #[arg(short = 'v', long = "verbose")]
+        verbose: bool,
+        /// Skip package.json dependency update
+        #[arg(long = "skip-package-json")]
+        skip_package_json: bool,
     },
     /// Generate spec and deploy to server
     #[command(after_help = "Examples:
@@ -308,9 +343,9 @@ pub enum EnvAction {
 
 #[derive(Subcommand)]
 pub enum GrpcAction {
-    /// Call a gRPC method
+    /// Call a gRPC method (via APIForge server, uses dynamic protobuf)
     Call {
-        /// Service and method (e.g., Greeter.SayHello)
+        /// Service and method (e.g., Greeter.SayHello or Greeter/SayHello)
         service_method: String,
         /// Path to .proto file
         #[arg(long = "proto")]
@@ -321,10 +356,14 @@ pub enum GrpcAction {
         /// JSON request data
         #[arg(short = 'd', long = "data")]
         data: Option<String>,
+        /// Use TLS for the gRPC connection
+        #[arg(long = "tls", default_value_t = false)]
+        tls: bool,
     },
     /// List services in a .proto file
     ListServices {
         /// Path to .proto file
+        #[arg(long = "proto")]
         proto: String,
     },
 }
@@ -486,6 +525,9 @@ async fn main() -> Result<()> {
         }
         Commands::Spec { action } => {
             commands::spec::execute(action)
+        }
+        Commands::Migrate { src, dry_run, verbose, skip_package_json } => {
+            commands::migrate::execute(src, dry_run, verbose, skip_package_json)
         }
         Commands::Deploy { source, environment, base_url, name, verbose } => {
             commands::deploy::execute(source, environment, base_url, name, verbose).await

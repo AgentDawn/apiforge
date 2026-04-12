@@ -28,6 +28,7 @@ let appState = {
   },
   tabs: [],
   activeTabId: null,
+  serverHistory: [],
 };
 
 // ─── Simple Hash Utility ──────────────────────────────────
@@ -343,7 +344,7 @@ function loadSpec(spec, options) {
   appState._protoRaw = null;
   hideGrpcBar();
   const title = spec.info?.title || 'Untitled API';
-  const version = spec.info?.version || '';
+  void spec.info?.version;
 
   // Extract endpoints
   const endpoints = [];
@@ -390,7 +391,8 @@ function loadSpec(spec, options) {
   if (saveBtn) saveBtn.disabled = false;
   if (delBtn) delBtn.disabled = false;
 
-  // Spec change detection: mark stale/removed tabs on re-import
+  // Spec change detection: mark stale/removed tabs on re-import of the SAME spec
+  // Only check when the same spec title is re-loaded (not when switching collections)
   if (previousHash && previousHash !== appState.specHash) {
     const newEndpointKeys = new Set(endpoints.map((e) => e.method + ' ' + e.path));
     appState.tabs.forEach((tab) => {
@@ -718,6 +720,32 @@ function saveResponseToCollection(tab, status, body, timing) {
   renderSavedCollections();
   switchSidebarView('collections');
   updateHistoryCount();
+
+  // Sync to server
+  syncHistoryToServer(historyEntry);
+}
+
+async function syncHistoryToServer(entry) {
+  if (!window.apiFetchGlobal) return;
+  try {
+    const envName = appState.activeEnv?.name || '';
+    const authType = window.appAuthState?.token ? 'bearer' : (window._connectorToken ? 'connector' : 'none');
+    await window.apiFetchGlobal('/api/history', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: entry.id,
+        method: entry.request.method,
+        url: entry.request.url,
+        status: entry.response.status,
+        timing_ms: entry.response.timing || 0,
+        request_body: typeof entry.request.body === 'string' ? entry.request.body : JSON.stringify(entry.request.body || ''),
+        response_body: typeof entry.response.body === 'string' ? entry.response.body.slice(0, 10000) : '',
+        source: 'web',
+        environment: envName,
+        auth_type: authType,
+      }),
+    });
+  } catch { /* server may be unavailable */ }
 }
 
 function renderSavedCollections() {
@@ -1050,12 +1078,29 @@ function renderCollectionTree(title, endpoints) {
     groups[tag].push(ep);
   });
 
-  // Collection header
+  // Collection header (clickable to collapse/expand all folders)
   const header = document.createElement('div');
   header.className = 'collection-name';
-  header.textContent = title;
-  header.dataset.testid = 'collection-name';
+  header.style.cssText = 'cursor:pointer;display:flex;align-items:center;gap:6px;';
+  const headerIcon = document.createElement('span');
+  headerIcon.className = 'folder-icon';
+  headerIcon.style.fontSize = '10px';
+  headerIcon.innerHTML = '&#9660;';
+  const headerText = document.createElement('span');
+  headerText.dataset.testid = 'collection-name';
+  headerText.textContent = title;
+  header.appendChild(headerIcon);
+  header.appendChild(headerText);
   tree.appendChild(header);
+
+  const foldersContainer = document.createElement('div');
+  foldersContainer.className = 'collection-folders';
+
+  header.addEventListener('click', () => {
+    const isHidden = foldersContainer.classList.contains('hidden');
+    foldersContainer.classList.toggle('hidden');
+    header.querySelector('.folder-icon').innerHTML = isHidden ? '&#9660;' : '&#9654;';
+  });
 
   for (const [tag, eps] of Object.entries(groups)) {
     const folder = document.createElement('div');
@@ -1072,7 +1117,7 @@ function renderCollectionTree(title, endpoints) {
     folderHeader.addEventListener('click', () => {
       folderContent.classList.toggle('hidden');
       const icon = folderHeader.querySelector('.folder-icon');
-      icon.innerHTML = folderContent.classList.contains('hidden') ? '&#9654;' : '&#9660;';
+      if (icon) icon.innerHTML = folderContent.classList.contains('hidden') ? '&#9654;' : '&#9660;';
     });
 
     eps.forEach((ep) => {
@@ -1130,8 +1175,9 @@ function renderCollectionTree(title, endpoints) {
 
     folder.appendChild(folderHeader);
     folder.appendChild(folderContent);
-    tree.appendChild(folder);
+    foldersContainer.appendChild(folder);
   }
+  tree.appendChild(foldersContainer);
 }
 
 function renderExamplesList(container, ep) {
@@ -1338,6 +1384,8 @@ function renderEnvironments() {
       detail: { env: appState.activeEnv },
     }));
     updateEnvVarBadge();
+    // Reload connector config for the new environment
+    if (typeof loadConnectorConfig === 'function') loadConnectorConfig();
     // Close variables panel when switching envs
     const varsPanel = $('#env-vars-panel');
     if (varsPanel && !varsPanel.classList.contains('hidden')) {
@@ -1354,27 +1402,96 @@ function renderEnvironments() {
 const ENV_STORAGE_KEY = 'apiforge-environments';
 
 function loadCustomEnvironments() {
+  // Load from localStorage cache first
   try {
     const saved = localStorage.getItem(ENV_STORAGE_KEY);
-    if (!saved) return;
-    const envs = JSON.parse(saved);
-    envs.forEach((env) => {
-      // Avoid duplicates
-      if (!appState.environments.find((e) => e.name === env.name)) {
-        appState.environments.push(env);
+    if (saved) {
+      const envs = JSON.parse(saved);
+      envs.forEach((env) => {
+        if (!appState.environments.find((e) => e.name === env.name)) {
+          appState.environments.push(env);
+        }
+      });
+      refreshEnvSelector();
+    }
+  } catch (e) { console.warn('Failed to load environments from localStorage', e); }
+
+  // Then fetch from server (async, updates when ready)
+  loadServerEnvironments();
+}
+
+window.loadServerEnvironments = loadServerEnvironments;
+async function loadServerEnvironments() {
+  if (typeof window.apiFetchGlobal !== 'function') { return; }
+  try {
+    const resp = await window.apiFetchGlobal('/api/environments');
+    if (!resp.ok || !resp.data) return;
+    const serverEnvs = resp.data;
+    serverEnvs.forEach((env) => {
+      let variables = {};
+      try { variables = typeof env.variables === 'string' ? JSON.parse(env.variables) : (env.variables || {}); } catch {}
+
+      const envObj = {
+        name: env.name,
+        baseUrl: variables.baseUrl || '',
+        variables: variables,
+        _serverId: env.id,
+        _custom: true,
+      };
+
+      // Update or add
+      const existingIdx = appState.environments.findIndex((e) => e.name === env.name);
+      if (existingIdx >= 0) {
+        appState.environments[existingIdx] = envObj;
+      } else {
+        appState.environments.push(envObj);
+      }
+
+      // Sync connector config (global) from environment variables if present
+      if (variables.connectorSearchUrl || variables.connectorTokenUrl) {
+        localStorage.setItem('apiforge-connector-config', JSON.stringify({
+          searchUrl: variables.connectorSearchUrl || '',
+          tokenUrl: variables.connectorTokenUrl || '',
+        }));
       }
     });
-    // Re-render selector options
-    const selector = $('#env-selector');
-    appState.environments.forEach((env, i) => {
-      if (!selector.querySelector(`option[value="${i}"]`)) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = env.name + ' (' + env.baseUrl + ')';
-        selector.appendChild(opt);
-      }
-    });
-  } catch (e) { console.warn('Failed to load custom environments from localStorage', e); }
+
+    // Cache to localStorage
+    const customEnvs = appState.environments.filter((e) => e._custom);
+    localStorage.setItem(ENV_STORAGE_KEY, JSON.stringify(customEnvs));
+
+    refreshEnvSelector();
+    // Reload connector config for active env
+    if (typeof window.loadConnectorConfig === 'function') window.loadConnectorConfig();
+  } catch (e) { console.warn('Failed to load environments from server', e); }
+}
+
+function refreshEnvSelector() {
+  const selector = $('#env-selector');
+  if (!selector) return;
+  const prevValue = selector.value;
+  selector.innerHTML = '<option value="">No Environment</option>';
+  appState.environments.forEach((env, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = env.name + (env.baseUrl ? ' (' + env.baseUrl + ')' : '');
+    selector.appendChild(opt);
+  });
+  // Restore previous selection
+  if (prevValue && selector.querySelector(`option[value="${prevValue}"]`)) {
+    selector.value = prevValue;
+  }
+  // Re-attach change handler
+  selector.onchange = () => {
+    const idx = selector.value;
+    appState.activeEnv = idx !== '' ? appState.environments[idx] : null;
+    if (appState.selectedEndpoint) updateUrlFromEndpoint(appState.selectedEndpoint);
+    window.dispatchEvent(new CustomEvent('apiforge:env-changed', { detail: { env: appState.activeEnv } }));
+    updateEnvVarBadge();
+    if (typeof window.loadConnectorConfig === 'function') window.loadConnectorConfig();
+    const varsPanel = $('#env-vars-panel');
+    if (varsPanel && !varsPanel.classList.contains('hidden')) renderEnvVarsEditor();
+  };
 }
 
 function saveCustomEnvironments() {
@@ -2580,7 +2697,10 @@ async function sendRequest() {
         grpcBody.metadata = metaHeaders;
       }
 
-      const resp = await fetch('/api/grpc', {
+      // Use native gRPC endpoint when proto content is available (dynamic protobuf).
+      // Falls back to /api/grpc (gRPC-Web proxy) only if proto is missing.
+      const grpcEndpoint = grpcBody.proto ? '/api/grpc/native' : '/api/grpc';
+      const resp = await fetch(grpcEndpoint, {
         method: 'POST',
         headers: grpcHeaders,
         body: JSON.stringify(grpcBody),
@@ -3167,7 +3287,7 @@ function selectSearchResult(ep) {
   selectEndpoint(ep);
 }
 
-function updateSearchSelection(container, results) {
+function updateSearchSelection(container) {
   container.querySelectorAll('.search-result-item').forEach((el, i) => {
     el.classList.toggle('active', i === searchSelectedIndex);
     if (i === searchSelectedIndex) el.scrollIntoView({ block: 'nearest' });
@@ -3295,8 +3415,10 @@ function initSidebarToggle() {
 
 function switchSidebarView(view) {
   const docsView = $('#api-docs-section');
+  const docsHeader = $('#api-docs-header');
   const importSpecView = $('#import-spec-section');
   const collectionsView = $('#collections-section');
+  const historyView = $('#history-section');
   const btns = $$('.sidebar-toggle-btn');
 
   btns.forEach((b) => {
@@ -3305,12 +3427,23 @@ function switchSidebarView(view) {
 
   if (view === 'docs') {
     if (docsView) docsView.classList.remove('hidden');
+    if (docsHeader) docsHeader.classList.remove('hidden');
     if (importSpecView) importSpecView.classList.remove('hidden');
     if (collectionsView) collectionsView.classList.add('hidden');
+    if (historyView) historyView.classList.add('hidden');
+  } else if (view === 'history') {
+    if (docsView) docsView.classList.add('hidden');
+    if (docsHeader) docsHeader.classList.add('hidden');
+    if (importSpecView) importSpecView.classList.add('hidden');
+    if (collectionsView) collectionsView.classList.add('hidden');
+    if (historyView) historyView.classList.remove('hidden');
+    if (typeof renderGlobalHistory === 'function') renderGlobalHistory();
   } else {
     if (docsView) docsView.classList.add('hidden');
+    if (docsHeader) docsHeader.classList.add('hidden');
     if (importSpecView) importSpecView.classList.add('hidden');
     if (collectionsView) collectionsView.classList.remove('hidden');
+    if (historyView) historyView.classList.add('hidden');
   }
 }
 
@@ -3345,7 +3478,7 @@ function switchMode(mode) {
         switchTab(existingClient.id);
       } else {
         // Create a new client tab and select the endpoint into it
-        const newTab = createTab({ type: 'client', method: ep.method, endpointKey: endpointKey });
+        createTab({ type: 'client', method: ep.method, endpointKey: endpointKey });
         selectEndpoint(ep);
       }
     } else {
@@ -3506,7 +3639,7 @@ function buildDocsLeftColumn(ep, spec) {
   return { html, reqBodyExample, reqBodyContentType, responseExamples };
 }
 
-function buildDocsRightColumn(ep, spec, responseExamples, reqBodyExample, reqBodyContentType) {
+function buildDocsRightColumn(ep, _spec, responseExamples, reqBodyExample, reqBodyContentType) {
   let html = '<div class="docs-right-sticky" data-testid="docs-right-sticky">';
 
   // Request example block (POST/PUT/PATCH with a body schema)
@@ -3750,7 +3883,7 @@ function initCopyCurl() {
       ta.value = curl;
       document.body.appendChild(ta);
       ta.select();
-      document.execCommand('copy');
+      navigator.clipboard.writeText(ta.value).catch(() => {});
       ta.remove();
       showCopyFeedback(btn, 'Copied!');
     }
@@ -4002,7 +4135,7 @@ function initShareLink() {
     }
     try {
       const json = JSON.stringify(data);
-      const encoded = btoa(unescape(encodeURIComponent(json)));
+      const encoded = btoa(new TextEncoder().encode(json).reduce((s, b) => s + String.fromCharCode(b), ''));
       const shareUrl = window.location.origin + window.location.pathname + '#/share/' + encoded;
       await navigator.clipboard.writeText(shareUrl);
       showCopyFeedback(btn, 'Link copied!');
@@ -4062,7 +4195,7 @@ function loadSharedRequest() {
 
   const encoded = hash.substring(8); // after '#/share/'
   try {
-    const json = decodeURIComponent(escape(atob(encoded)));
+    const json = new TextDecoder().decode(Uint8Array.from(atob(encoded), c => c.charCodeAt(0)));
     const data = JSON.parse(json);
 
     // Populate fields
@@ -4963,25 +5096,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Auth Connector ---
 
-  // Restore connector config on load
-  try {
-    const savedConnectorConfig = localStorage.getItem('apiforge-connector-config');
-    if (savedConnectorConfig) {
-      const connectorConfig = JSON.parse(savedConnectorConfig);
+  // Restore connector config on load (per-environment)
+  window.loadConnectorConfig = loadConnectorConfig;
+  function loadConnectorConfig() {
+    try {
+      const connectorKey = 'apiforge-connector-config';
+      const savedConnectorConfig = localStorage.getItem(connectorKey);
       const searchUrlEl = $('#connector-search-url');
       const tokenUrlEl = $('#connector-token-url');
-      if (searchUrlEl && connectorConfig.searchUrl) searchUrlEl.value = connectorConfig.searchUrl;
-      if (tokenUrlEl && connectorConfig.tokenUrl) tokenUrlEl.value = connectorConfig.tokenUrl;
-    }
-  } catch (e) { /* ignore */ }
+      if (savedConnectorConfig) {
+        const connectorConfig = JSON.parse(savedConnectorConfig);
+        if (searchUrlEl && connectorConfig.searchUrl) searchUrlEl.value = connectorConfig.searchUrl;
+        if (tokenUrlEl && connectorConfig.tokenUrl) tokenUrlEl.value = connectorConfig.tokenUrl;
+      } else {
+        if (searchUrlEl) searchUrlEl.value = '';
+        if (tokenUrlEl) tokenUrlEl.value = '';
+      }
+    } catch (e) { /* ignore */ }
+  }
+  loadConnectorConfig();
 
   // Save connector config
   const connectorSaveBtn = $('#connector-save-config');
   if (connectorSaveBtn) {
     connectorSaveBtn.addEventListener('click', () => {
+      const connectorKey = 'apiforge-connector-config';
       const searchUrl = ($('#connector-search-url') || {}).value || '';
       const tokenUrl = ($('#connector-token-url') || {}).value || '';
-      localStorage.setItem('apiforge-connector-config', JSON.stringify({ searchUrl, tokenUrl }));
+      localStorage.setItem(connectorKey, JSON.stringify({ searchUrl, tokenUrl }));
     });
   }
 
@@ -4992,7 +5134,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const resultsEl = $('#connector-results');
       if (!resultsEl) return;
       let config = {};
-      try { config = JSON.parse(localStorage.getItem('apiforge-connector-config') || '{}'); } catch (e) { /* ignore */ }
+      try { const connectorKey = 'apiforge-connector-config'; config = JSON.parse(localStorage.getItem(connectorKey) || '{}'); } catch (e) { /* ignore */ }
       const searchUrl = config.searchUrl || '';
       const query = ($('#connector-search-input') || {}).value || '';
       if (!searchUrl) return;
@@ -5003,14 +5145,15 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify({ query }),
         });
         const data = await res.json();
-        const users = data.users || [];
-        resultsEl.innerHTML = users.map((u) =>
-          `<div data-testid="connector-user-row" data-id="${u.id}" data-email="${u.email}" data-name="${u.name || u.email}" style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid var(--border);font-size:13px;">
-            <span>${u.email}${u.name ? ' — ' + u.name : ''}</span>
-            <button class="btn btn-secondary" data-testid="connector-get-token-btn" data-id="${u.id}" data-name="${u.name || u.email}" data-email="${u.email}" style="font-size:11px;padding:4px 10px;">Get Token</button>
+        const userList = data.users || [];
+        resultsEl.innerHTML = userList.map((u) =>
+          `<div data-testid="connector-user-row" data-id="${u.uid || u.id}" data-email="${u.email}" data-name="${u.nickname || u.name || u.email}" style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid var(--border);font-size:13px;">
+            <span>${u.email}${u.nickname ? ' — ' + u.nickname : (u.name ? ' — ' + u.name : '')}</span>
+            <button class="btn btn-secondary" data-testid="connector-get-token-btn" data-id="${u.uid || u.id}" data-name="${u.nickname || u.name || u.email}" data-email="${u.email}" style="font-size:11px;padding:4px 10px;">Get Token</button>
           </div>`
         ).join('');
-      } catch (e) { if (resultsEl) resultsEl.innerHTML = '<div style="color:red;font-size:12px;">Search failed</div>'; }
+        if (userList.length === 0) resultsEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">No users found</div>';
+      } catch (e) { if (resultsEl) resultsEl.innerHTML = '<div style="color:red;font-size:12px;">Search failed: ' + e.message + '</div>'; }
     });
   }
 
@@ -5024,7 +5167,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const userName = btn.dataset.name || btn.dataset.email;
       const userEmail = btn.dataset.email;
       let config = {};
-      try { config = JSON.parse(localStorage.getItem('apiforge-connector-config') || '{}'); } catch (err) { /* ignore */ }
+      try { const connectorKey = 'apiforge-connector-config'; config = JSON.parse(localStorage.getItem(connectorKey) || '{}'); } catch (err) { /* ignore */ }
       const tokenUrl = (config.tokenUrl || '').replace('{id}', userId);
       if (!tokenUrl) return;
       try {
@@ -5414,3 +5557,191 @@ window.updateHistoryCount = updateHistoryCount;
 window.switchResponseTab = switchResponseTab;
 window.viewHistoryItem = viewHistoryItem;
 window.relativeTime = relativeTime;
+
+// ─── Server Collections (real-time via SSE) ──────────────
+let serverCollectionsCache = [];
+
+function renderServerCollections(collections) {
+  serverCollectionsCache = collections || [];
+  const container = document.getElementById('saved-collections-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!collections || collections.length === 0) return;
+
+  for (const col of collections) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'server-collection-item';
+    wrapper.dataset.colId = col.id;
+
+    const header = document.createElement('div');
+    header.style.cssText = 'padding:6px 8px;cursor:pointer;border-radius:4px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;';
+    header.onmouseover = () => header.style.background = 'var(--bg-hover, rgba(255,255,255,0.05))';
+    header.onmouseout = () => { if (!wrapper.classList.contains('expanded')) header.style.background = ''; };
+
+    const arrow = document.createElement('span');
+    arrow.className = 'folder-icon';
+    arrow.innerHTML = '&#9654;';
+    arrow.style.cssText = 'font-size:10px;';
+    header.appendChild(arrow);
+
+    const name = document.createElement('span');
+    name.textContent = col.name || col.id;
+    header.appendChild(name);
+
+    const content = document.createElement('div');
+    content.className = 'server-collection-content hidden';
+    content.style.cssText = 'padding-left:8px;';
+
+    header.addEventListener('click', async () => {
+      const isExpanding = !wrapper.classList.contains('expanded');
+
+      // Accordion: close all
+      container.querySelectorAll('.server-collection-item').forEach((item) => {
+        item.classList.remove('expanded');
+        const c = item.querySelector('.server-collection-content');
+        if (c) c.classList.add('hidden');
+        const ic = item.querySelector('.folder-icon');
+        if (ic) ic.innerHTML = '&#9654;';
+        const hdr = item.querySelector('div');
+        if (hdr) hdr.style.background = '';
+      });
+
+      if (isExpanding) {
+        wrapper.classList.add('expanded');
+        arrow.innerHTML = '&#9660;';
+        header.style.background = 'var(--bg-hover, rgba(255,255,255,0.05))';
+        content.classList.remove('hidden');
+
+        // Fetch spec and render inline
+        if (typeof window.apiFetchGlobal === 'function') {
+          content.innerHTML = '<div style="padding:8px;font-size:11px;color:var(--text-muted);">Loading...</div>';
+          const resp = await window.apiFetchGlobal('/api/collections/' + col.id);
+          content.innerHTML = '';
+          if (resp && resp.ok && resp.data && resp.data.spec) {
+            try {
+              const spec = JSON.parse(resp.data.spec);
+              if (typeof window.loadSpec === 'function') window.loadSpec(spec);
+            } catch (e) { content.innerHTML = '<div style="padding:8px;color:var(--error);font-size:11px;">Failed to load</div>'; }
+          }
+        }
+      }
+    });
+
+    wrapper.appendChild(header);
+    wrapper.appendChild(content);
+    container.appendChild(wrapper);
+  }
+}
+
+window.renderServerCollections = renderServerCollections;
+
+async function refreshServerCollections() {
+  if (typeof window.apiFetchGlobal !== 'function') {
+    return;
+  }
+  try {
+    const resp = await window.apiFetchGlobal('/api/collections');
+    if (resp.ok && resp.data) {
+      renderServerCollections(resp.data);
+    }
+  } catch (e) {
+    console.error('[SSE] Failed to refresh collections:', e);
+  }
+}
+
+// ─── Global History (Sidebar View) ───────────────────────
+function renderGlobalHistory() {
+  const container = $('#global-history-list');
+  if (!container) return;
+  const serverHist = appState.serverHistory || [];
+  if (serverHist.length === 0) {
+    container.innerHTML = '<div style="padding:16px;color:var(--text-secondary);font-size:12px;">No history yet. Request activity will appear here automatically.</div>';
+    return;
+  }
+  let html = '';
+  serverHist.forEach((entry) => {
+    const st = Number(entry.status) || 0;
+    const statusClass = st >= 200 && st < 300 ? 'status-ok' : st >= 400 ? 'status-error' : 'status-redirect';
+    const source = entry.source || 'web';
+    const sourceBadge = source === 'cli' ? '<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:var(--accent);color:#fff;">CLI</span>' : '<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:var(--text-muted);color:#fff;">WEB</span>';
+    const env = entry.environment || '';
+    const authT = entry.auth_type || '';
+    const envBadge = env ? '<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:#2a6;color:#fff;">' + escapeHtml(env) + '</span>' : '';
+    const authBadge = authT && authT !== 'none' ? '<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:#c80;color:#fff;">' + escapeHtml(authT) + '</span>' : '';
+    const timing = entry.timing_ms || 0;
+    const ts = entry.created_at || '';
+    const method = (entry.method || 'GET').toUpperCase();
+    html += '<div class="history-item sidebar-item" data-global-history-id="' + (entry.id || '') + '" style="padding:6px 8px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
+    html += '<span class="history-status ' + statusClass + '" style="font-size:10px;font-weight:700;min-width:28px;">' + st + '</span>';
+    html += '<span style="font-size:10px;font-weight:600;color:var(--method-color,var(--text-secondary));min-width:36px;">' + escapeHtml(method) + '</span>';
+    html += '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary);">' + escapeHtml(entry.url || '') + '</span>';
+    html += '<span style="display:flex;gap:2px;">' + sourceBadge + envBadge + authBadge + '</span>';
+    html += '<span style="font-size:10px;color:var(--text-muted);white-space:nowrap;">' + timing + 'ms</span>';
+    html += '<span style="font-size:10px;color:var(--text-muted);white-space:nowrap;">' + (ts ? relativeTime(ts) : '') + '</span>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+
+  // Click to view details
+  container.querySelectorAll('[data-global-history-id]').forEach((item) => {
+    item.addEventListener('click', () => {
+      viewServerHistoryItem(item.dataset.globalHistoryId);
+    });
+  });
+}
+
+// ─── Server History (Global — CLI + Web) ─────────────────
+async function loadServerHistory() {
+  if (!window.apiFetchGlobal) return;
+  try {
+    const { ok, data } = await window.apiFetchGlobal('/api/history?limit=100');
+    if (ok && Array.isArray(data)) {
+      appState.serverHistory = data;
+    }
+  } catch { /* server unavailable */ }
+}
+
+async function refreshServerHistory() {
+  await loadServerHistory();
+  // Re-render if history tab is active
+  const historyPanel = $('#response-tab-history');
+  if (historyPanel && !historyPanel.classList.contains('hidden')) {
+    renderHistory();
+  }
+  // Re-render sidebar history if visible
+  const historySection = $('#history-section');
+  if (historySection && !historySection.classList.contains('hidden')) {
+    renderGlobalHistory();
+  }
+}
+
+function viewServerHistoryItem(serverId) {
+  const entry = (appState.serverHistory || []).find((h) => h.id === serverId);
+  if (!entry) return;
+
+  // Populate URL and method inputs
+  const methodSelect = $('#method-select');
+  const urlInput = $('#url-input');
+  if (methodSelect) methodSelect.value = (entry.method || 'GET').toUpperCase();
+  if (urlInput) urlInput.value = entry.url || '';
+
+  // Switch environment if specified
+  const envName = entry.environment || '';
+  if (envName) {
+    const envSelector = $('#env-selector');
+    if (envSelector) {
+      const idx = appState.environments.findIndex((e) => e.name === envName);
+      if (idx >= 0) {
+        envSelector.value = idx;
+        appState.activeEnv = appState.environments[idx];
+        envSelector.dispatchEvent(new Event('change'));
+      }
+    }
+  }
+}
+
+window.loadServerHistory = loadServerHistory;
+window.refreshServerHistory = refreshServerHistory;
+window.renderGlobalHistory = renderGlobalHistory;
+window.refreshServerCollections = refreshServerCollections;

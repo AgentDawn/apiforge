@@ -60,21 +60,24 @@
       <div class="sidebar-toggle" data-testid="sidebar-toggle">
         <button class="sidebar-toggle-btn active" data-view="docs" data-testid="sidebar-toggle-docs">API Docs <span id="docs-count" class="sidebar-toggle-count">0</span></button>
         <button class="sidebar-toggle-btn" data-view="collections" data-testid="sidebar-toggle-collections">Collections <span id="collections-count" class="sidebar-toggle-count">0</span></button>
+        <button class="sidebar-toggle-btn" data-view="history" data-testid="sidebar-toggle-history">History</button>
       </div>
-      <div class="sidebar-section" id="import-spec-section">
-        <h3>Import Spec</h3>
+      <div class="sidebar-fixed-section" id="import-spec-section">
+        <h3 style="font-size:11px;text-transform:uppercase;color:var(--text-muted);letter-spacing:1px;margin-bottom:8px;">Import Spec</h3>
         <input type="file" id="spec-file-input" accept=".json,.yaml,.yml,.proto,.fbs" style="display:none">
         <button class="btn btn-secondary" id="import-file-btn" style="font-size:12px;padding:8px;width:100%">Open File</button>
         <button class="btn btn-secondary" id="import-curl-btn" data-testid="import-curl-btn" style="font-size:12px;padding:8px;width:100%;margin-top:4px">Paste cURL</button>
       </div>
-      <div class="sidebar-section" id="api-docs-section">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="sidebar-fixed-section" id="api-docs-header">
+        <div class="sidebar-section-header">
           <h3 class="sidebar-section-title">API DOCS</h3>
           <div style="display:flex;gap:4px;">
             <button class="btn btn-secondary" id="save-collection-btn" data-testid="save-collection-btn" style="font-size:10px;padding:3px 8px;" title="Save to server" disabled>Save</button>
             <button class="btn btn-secondary" id="delete-collection-btn" data-testid="delete-collection-btn" style="font-size:10px;padding:3px 8px;" title="Delete from server" disabled>Delete</button>
           </div>
         </div>
+      </div>
+      <div class="sidebar-section sidebar-scroll-section" id="api-docs-section">
         <div id="collection-tree" data-testid="collection-tree"></div>
         <!-- Saved collections from server -->
         <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;"></div>
@@ -83,6 +86,10 @@
       <div class="sidebar-section hidden" id="collections-section">
         <h3 class="sidebar-section-title">COLLECTIONS</h3>
         <div id="saved-collections-tree" data-testid="saved-collections-tree"></div>
+      </div>
+      <div class="sidebar-section sidebar-scroll-section hidden" id="history-section">
+        <h3 class="sidebar-section-title">ALL ACTIVITY</h3>
+        <div id="global-history-list" data-testid="global-history-list"></div>
       </div>
     </aside>
     <div class="main">

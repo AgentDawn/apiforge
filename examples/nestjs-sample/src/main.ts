@@ -31,6 +31,13 @@ async function bootstrap() {
       package: 'petstore.v1',
       protoPath: join(__dirname, '..', 'proto', 'petstore.proto'),
       url: '0.0.0.0:50051',
+      loader: {
+        keepCase: true,
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true,
+      },
     },
   });
 

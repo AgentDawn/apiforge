@@ -74,10 +74,11 @@ export class GrpcController {
 
   // ─── Shared logic ──────────────────────────────────────
 
-  private getPetById(id: string): Pet {
-    const pet = this.pets.find((p) => p.id === id);
+  private getPetById(id: string | number): Pet {
+    const key = String(id ?? '');
+    const pet = this.pets.find((p) => p.id === key);
     if (pet) return pet;
-    return { id: id || '0', name: 'Unknown', status: 'PET_STATUS_UNSPECIFIED', tags: [] };
+    return { id: key || '0', name: 'Unknown', status: 'PET_STATUS_UNSPECIFIED', tags: [] };
   }
 
   private addNewPet(data: { name?: string; status?: string; tags?: string[] }): Pet {
@@ -96,10 +97,10 @@ export class GrpcController {
     return { pets: this.pets.slice(0, l), total: this.pets.length };
   }
 
-  private createOrder(petId?: string): Order {
+  private createOrder(petId?: string | number): Order {
     return {
       id: String(this.nextOrderId++),
-      pet_id: petId || '1',
+      pet_id: String(petId ?? '1'),
       status: 'ORDER_STATUS_PLACED',
     };
   }

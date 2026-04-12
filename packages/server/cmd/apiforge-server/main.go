@@ -41,13 +41,18 @@ func main() {
 	// Initialize API token auth
 	middleware.InitAPITokenAuth(dbClient)
 
+	// Event broker for SSE
+	events := handler.NewEventBroker()
+
 	// Handlers
 	authHandler := &handler.AuthHandler{DB: dbClient}
-	collectionHandler := &handler.CollectionHandler{DB: dbClient}
+	collectionHandler := &handler.CollectionHandler{DB: dbClient, Events: events}
 	envHandler := &handler.EnvironmentHandler{DB: dbClient}
 	tokenHandler := &handler.TokenHandler{DB: dbClient}
 	proxyHandler := &handler.ProxyHandler{}
 	grpcProxyHandler := &handler.GrpcProxyHandler{}
+	grpcNativeHandler := &handler.GrpcNativeHandler{}
+	historyHandler := &handler.HistoryHandler{DB: dbClient, Events: events}
 	agentHandler := &handler.AgentHandler{}
 	publicDocsHandler := &handler.PublicDocsHandler{DB: dbClient}
 
@@ -65,12 +70,18 @@ func main() {
 	mux.Handle("/api/environments/", middleware.Auth(envHandler))
 	mux.Handle("/api/proxy", middleware.Auth(proxyHandler))
 	mux.Handle("/api/grpc", middleware.Auth(grpcProxyHandler))
+	mux.Handle("/api/grpc/native", middleware.Auth(grpcNativeHandler))
 	mux.Handle("/api/tokens", middleware.Auth(tokenHandler))
 	mux.Handle("/api/tokens/", middleware.Auth(tokenHandler))
+	mux.Handle("/api/history", middleware.Auth(historyHandler))
+	mux.Handle("/api/history/", middleware.Auth(historyHandler))
 	mux.Handle("/api/agent/chat", middleware.Auth(agentHandler))
 
 	// Public docs (no auth required)
 	mux.Handle("/public/docs/", publicDocsHandler)
+
+	// SSE events endpoint (no auth required for real-time updates)
+	mux.Handle("/events", events)
 
 	// Health check (includes initialization status)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -111,9 +122,14 @@ func main() {
 	fmt.Println("    POST /api/environments - Create environment")
 	fmt.Println("    POST /api/proxy        - CORS proxy")
 	fmt.Println("    POST /api/grpc         - gRPC proxy (JSON to gRPC-Web)")
+	fmt.Println("    POST /api/grpc/native  - Native gRPC via .proto (dynamic protobuf)")
 	fmt.Println("    POST /api/tokens       - Create API token")
 	fmt.Println("    GET  /api/tokens       - List API tokens")
 	fmt.Println("    DELETE /api/tokens/{id} - Revoke API token")
+	fmt.Println("    GET  /api/history       - List request history")
+	fmt.Println("    POST /api/history       - Save history entry")
+	fmt.Println("    DELETE /api/history      - Clear all history")
+	fmt.Println("    GET  /events            - SSE event stream")
 	fmt.Println("    POST /api/agent/chat   - Agent Mode (Claude CLI)")
 	fmt.Println("    POST /api/collections/{id}/share - Create share link")
 	fmt.Println("    GET  /public/docs/{token}       - Public API docs")

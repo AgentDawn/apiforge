@@ -49,6 +49,26 @@ pub fn resolve_token() -> Option<String> {
     None
 }
 
+pub fn resolve_server_url() -> Option<String> {
+    if let Ok(url) = std::env::var("APIFORGE_SERVER") {
+        if !url.is_empty() {
+            return Some(url);
+        }
+    }
+
+    let data_dir = super::environment::get_data_dir().ok()?;
+    let auth_path = data_dir.join("auth.json");
+    if auth_path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&auth_path) {
+            if let Ok(config) = serde_json::from_str::<AuthConfig>(&content) {
+                return config.server_url;
+            }
+        }
+    }
+
+    None
+}
+
 pub fn get_auth_headers(auth_type: &str, config: &serde_json::Value) -> Vec<(String, String)> {
     let mut headers = Vec::new();
     match auth_type {

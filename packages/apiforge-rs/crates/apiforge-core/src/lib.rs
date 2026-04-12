@@ -7,5 +7,6 @@ pub mod curl_parser;
 pub mod server;
 pub mod collection;
 pub mod openapi_parser;
+pub mod postman_parser;
 pub mod report;
 pub mod share;

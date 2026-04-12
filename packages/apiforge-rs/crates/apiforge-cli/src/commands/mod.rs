@@ -11,3 +11,4 @@ pub mod import;
 pub mod collections;
 pub mod spec;
 pub mod deploy;
+pub mod migrate;

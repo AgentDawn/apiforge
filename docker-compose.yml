@@ -21,6 +21,9 @@ services:
       - PORT=8090
       - RQLITE_URL=http://rqlite:4001
       - JWT_SECRET=${JWT_SECRET:-apiforge-dev-secret-change-in-production}
+      - APIFORGE_LOCALHOST_REWRITE=host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       rqlite:
         condition: service_healthy

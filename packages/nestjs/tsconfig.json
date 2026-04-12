@@ -8,7 +8,10 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": false,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noUnusedParameters": false,
+    "noUnusedLocals": false,
+    "types": ["reflect-metadata", "node"]
   },
   "include": ["src/**/*"]
 }

@@ -10,7 +10,8 @@ import (
 )
 
 type CollectionHandler struct {
-	DB *db.Client
+	DB     *db.Client
+	Events *EventBroker
 }
 
 func (h *CollectionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -76,6 +77,26 @@ func (h *CollectionHandler) create(w http.ResponseWriter, r *http.Request, userI
 		return
 	}
 
+	// Check if collection with same name exists (upsert)
+	existing, _ := h.DB.QueryRow("SELECT id FROM collections WHERE user_id = ? AND name = ?", userID, body.Name)
+	if existing != nil {
+		id, _ := existing["id"].(string)
+		err := h.DB.ExecuteOne(
+			"UPDATE collections SET spec = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?",
+			body.Spec, id, userID,
+		)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to update collection")
+			return
+		}
+		result := map[string]string{"id": id, "name": body.Name, "status": "updated"}
+		writeJSON(w, http.StatusOK, result)
+		if h.Events != nil {
+			h.Events.Publish(Event{Type: "collection:updated", Data: result})
+		}
+		return
+	}
+
 	id := auth.GenerateID()
 	err := h.DB.ExecuteOne(
 		"INSERT INTO collections (id, user_id, name, spec) VALUES (?, ?, ?, ?)",
@@ -86,7 +107,11 @@ func (h *CollectionHandler) create(w http.ResponseWriter, r *http.Request, userI
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, map[string]string{"id": id, "name": body.Name})
+	result := map[string]string{"id": id, "name": body.Name, "status": "created"}
+	writeJSON(w, http.StatusCreated, result)
+	if h.Events != nil {
+		h.Events.Publish(Event{Type: "collection:created", Data: result})
+	}
 }
 
 func (h *CollectionHandler) get(w http.ResponseWriter, r *http.Request, userID, id string) {
@@ -120,7 +145,11 @@ func (h *CollectionHandler) update(w http.ResponseWriter, r *http.Request, userI
 		writeError(w, http.StatusInternalServerError, "failed to update collection")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"id": id, "status": "updated"})
+	result := map[string]string{"id": id, "status": "updated"}
+	writeJSON(w, http.StatusOK, result)
+	if h.Events != nil {
+		h.Events.Publish(Event{Type: "collection:updated", Data: result})
+	}
 }
 
 func (h *CollectionHandler) delete(w http.ResponseWriter, r *http.Request, userID, id string) {
@@ -129,7 +158,11 @@ func (h *CollectionHandler) delete(w http.ResponseWriter, r *http.Request, userI
 		writeError(w, http.StatusInternalServerError, "failed to delete collection")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"id": id, "status": "deleted"})
+	result := map[string]string{"id": id, "status": "deleted"}
+	writeJSON(w, http.StatusOK, result)
+	if h.Events != nil {
+		h.Events.Publish(Event{Type: "collection:deleted", Data: result})
+	}
 }
 
 func (h *CollectionHandler) createShare(w http.ResponseWriter, r *http.Request, userID, collectionID string) {

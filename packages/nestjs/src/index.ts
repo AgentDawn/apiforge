@@ -24,6 +24,7 @@ export {
   ApiProperty,
   ApiPropertyOptional,
   getSchemaPath,
+  OmitType,
   PickType,
 } from './decorators';
 

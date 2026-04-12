@@ -195,6 +195,22 @@ func (c *Client) Migrate() error {
 			created_at TEXT DEFAULT (datetime('now')),
 			updated_at TEXT DEFAULT (datetime('now'))
 		)`},
+		{`CREATE TABLE IF NOT EXISTS history (
+			id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL REFERENCES users(id),
+			method TEXT NOT NULL,
+			url TEXT NOT NULL,
+			status INTEGER NOT NULL DEFAULT 0,
+			timing_ms INTEGER NOT NULL DEFAULT 0,
+			request_body TEXT DEFAULT '',
+			response_body TEXT DEFAULT '',
+			source TEXT DEFAULT 'web',
+			environment TEXT DEFAULT '',
+			auth_type TEXT DEFAULT '',
+			created_at TEXT DEFAULT (datetime('now'))
+		)`},
+		{`ALTER TABLE history ADD COLUMN environment TEXT DEFAULT ''`},
+		{`ALTER TABLE history ADD COLUMN auth_type TEXT DEFAULT ''`},
 		{`CREATE TABLE IF NOT EXISTS api_tokens (
 			id TEXT PRIMARY KEY,
 			user_id TEXT NOT NULL REFERENCES users(id),

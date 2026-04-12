@@ -51,6 +51,36 @@ impl EnvironmentManager {
         let path = self.data_dir.join(format!("{}.json", env.name));
         let content = serde_json::to_string_pretty(env)?;
         std::fs::write(&path, content)?;
+
+        // Sync to server if authenticated
+        if let Err(e) = self.sync_to_server(env) {
+            eprintln!("  Warning: failed to sync environment to server: {}", e);
+        }
+
+        Ok(())
+    }
+
+    fn sync_to_server(&self, env: &Environment) -> Result<()> {
+        let token = super::auth::resolve_token().context("Not logged in")?;
+        let server_url = super::auth::resolve_server_url().context("No server configured")?;
+
+        let mut variables = env.variables.clone();
+        variables.insert("baseUrl".to_string(), env.base_url.clone());
+        let variables_json = serde_json::to_string(&variables)?;
+
+        let client = reqwest::blocking::Client::new();
+        let resp = client.post(format!("{}/api/environments", server_url))
+            .header("Authorization", format!("Bearer {}", token))
+            .header("Content-Type", "application/json")
+            .json(&serde_json::json!({
+                "name": env.name,
+                "variables": variables_json,
+            }))
+            .send()?;
+
+        if !resp.status().is_success() {
+            anyhow::bail!("Server returned {}", resp.status());
+        }
         Ok(())
     }
 
