@@ -19,3 +19,4 @@ anyhow = { workspace = true }
 crossterm = { workspace = true }
 url = { workspace = true }
 regex = { workspace = true }
+reqwest = { workspace = true }

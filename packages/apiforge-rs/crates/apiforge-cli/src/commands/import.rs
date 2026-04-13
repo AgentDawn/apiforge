@@ -81,7 +81,7 @@ pub async fn execute(source: String, name: Option<String>) -> Result<()> {
 
     // Sync to server if logged in
     if let Some(token) = apiforge_core::auth::resolve_token() {
-        if let Ok(server_url) = apiforge_core::auth::resolve_server_url() {
+        if let Some(server_url) = apiforge_core::auth::resolve_server_url() {
             println!();
             println!("Syncing to server...");
             match sync_to_server(&server_url, &token, &collection.name, &spec_content).await {
